@@ -55,7 +55,7 @@ const JOBS = {
     out: 'Cloud-Computing-AWS-Slides.pdf',
     opts: {
       paperWidth: 11.69, paperHeight: 8.27,          // A4 landscape
-      marginTop: 0.31, marginBottom: 0.31, marginLeft: 0.31, marginRight: 0.31,
+      marginTop: 1.00, marginBottom: 1.00, marginLeft: 0.31, marginRight: 0.31,
       displayHeaderFooter: false,
       printBackground: true,
       preferCSSPageSize: false,

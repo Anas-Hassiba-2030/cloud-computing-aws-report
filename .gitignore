@@ -16,3 +16,6 @@ crash.log
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# Chrome profile created by scripts/build-pdf.mjs
+.chrome-pdf-profile/

@@ -1,0 +1,99 @@
+{
+  "_note": "Every number used in report.html and slides.html lives here with its primary source and retrieval date. Nothing in the report is estimated or invented; derived values are marked 'derived' and show their arithmetic.",
+  "retrieved": "2026-09-07",
+
+  "cloud_market": {
+    "source": "Synergy Research Group (now part of TechInsights), quarterly cloud infrastructure services press releases",
+    "source_urls": [
+      "https://www.srgresearch.com/articles/ai-helps-cloud-market-growth-rate-jump-back-to-almost-25-in-q1",
+      "https://www.srgresearch.com/articles/q2-cloud-market-nears-100-billion-milestone-and-its-still-growing-by-25-year-over-year",
+      "https://www.srgresearch.com/articles/cloud-market-growth-rate-rises-again-in-q3-biggest-ever-sequential-increase",
+      "https://www.srgresearch.com/articles/genai-helps-drive-quarterly-cloud-revenues-to-119-billion-as-growth-rate-jumped-yet-again-in-q4",
+      "https://www.srgresearch.com/articles/cloud-market-annual-revenue-run-rate-topped-half-a-trillion-dollars-in-q1-as-growth-surge-continues",
+      "https://www.srgresearch.com/articles/q2-cloud-market-passes-143-billion-highest-growth-rate-in-eight-years"
+    ],
+    "metric": "Worldwide enterprise spending on cloud infrastructure services (IaaS + PaaS + hosted private cloud); share = % of that quarter's worldwide total",
+    "quarters": [
+      { "q": "Q1 2025", "market_usd_bn": 94.0,  "aws": 29, "azure": 22, "google": 12, "release_date": "2025-05-01", "size_basis": "stated" },
+      { "q": "Q2 2025", "market_usd_bn": 99.0,  "aws": 30, "azure": 20, "google": 13, "release_date": "2025-07-31", "size_basis": "stated ('almost $99 billion')" },
+      { "q": "Q3 2025", "market_usd_bn": 106.5, "aws": 29, "azure": 20, "google": 13, "release_date": "2025-10-31", "size_basis": "derived: Q4 2025 $119.1bn minus the 'almost $12 billion' sequential increase Synergy reported for Q4" },
+      { "q": "Q4 2025", "market_usd_bn": 119.1, "aws": 28, "azure": 21, "google": 14, "release_date": "2026-02-05", "size_basis": "stated" },
+      { "q": "Q1 2026", "market_usd_bn": 129.0, "aws": 28, "azure": 21, "google": 14, "release_date": "2026-04-29", "size_basis": "stated" },
+      { "q": "Q2 2026", "market_usd_bn": 143.4, "aws": 28, "azure": 20, "google": 15, "release_date": "2026-07-30", "size_basis": "stated" }
+    ],
+    "q2_2026_extras": {
+      "yoy_growth_pct": 43,
+      "yoy_growth_note": "11th successive quarter of increasing YoY growth; highest in eight years",
+      "trailing_twelve_month_usd_bn": 500,
+      "public_iaas_paas_growth_pct": 47,
+      "top3_share_of_public_cloud_pct": 67,
+      "genai_cloud_services_growth_pct": 165,
+      "full_year_2025_usd_bn": 419
+    }
+  },
+
+  "ec2_ondemand": {
+    "source": "AWS public pricing feed used by the EC2 pricing page",
+    "source_url": "https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json",
+    "region": "US East (N. Virginia) / us-east-1",
+    "os": "Linux",
+    "model": "On-Demand, USD per instance-hour",
+    "instances": [
+      { "type": "t4g.micro",   "usd_hr": 0.0084,  "vcpu": 2,   "mem_gib": 1,    "cpu": "AWS Graviton2 (Arm)", "family": "Burstable" },
+      { "type": "t3.micro",    "usd_hr": 0.0104,  "vcpu": 2,   "mem_gib": 1,    "cpu": "Intel (x86)",        "family": "Burstable" },
+      { "type": "t4g.small",   "usd_hr": 0.0168,  "vcpu": 2,   "mem_gib": 2,    "cpu": "AWS Graviton2 (Arm)", "family": "Burstable" },
+      { "type": "t3.small",    "usd_hr": 0.0208,  "vcpu": 2,   "mem_gib": 2,    "cpu": "Intel (x86)",        "family": "Burstable" },
+      { "type": "c8g.large",   "usd_hr": 0.0798,  "vcpu": 2,   "mem_gib": 4,    "cpu": "AWS Graviton4 (Arm)", "family": "Compute optimised" },
+      { "type": "c7i.large",   "usd_hr": 0.0892,  "vcpu": 2,   "mem_gib": 4,    "cpu": "Intel (x86)",        "family": "Compute optimised" },
+      { "type": "m8g.large",   "usd_hr": 0.0898,  "vcpu": 2,   "mem_gib": 8,    "cpu": "AWS Graviton4 (Arm)", "family": "General purpose" },
+      { "type": "m7i.large",   "usd_hr": 0.1008,  "vcpu": 2,   "mem_gib": 8,    "cpu": "Intel (x86)",        "family": "General purpose" },
+      { "type": "r8g.large",   "usd_hr": 0.1178,  "vcpu": 2,   "mem_gib": 16,   "cpu": "AWS Graviton4 (Arm)", "family": "Memory optimised" },
+      { "type": "r7i.large",   "usd_hr": 0.1323,  "vcpu": 2,   "mem_gib": 16,   "cpu": "Intel (x86)",        "family": "Memory optimised" },
+      { "type": "c8g.xlarge",  "usd_hr": 0.1595,  "vcpu": 4,   "mem_gib": 8,    "cpu": "AWS Graviton4 (Arm)", "family": "Compute optimised" },
+      { "type": "i4i.large",   "usd_hr": 0.1720,  "vcpu": 2,   "mem_gib": 16,   "cpu": "Intel (x86)",        "family": "Storage optimised (NVMe)" },
+      { "type": "m8g.xlarge",  "usd_hr": 0.1795,  "vcpu": 4,   "mem_gib": 16,   "cpu": "AWS Graviton4 (Arm)", "family": "General purpose" },
+      { "type": "x8g.large",   "usd_hr": 0.1954,  "vcpu": 2,   "mem_gib": 32,   "cpu": "AWS Graviton4 (Arm)", "family": "Memory optimised (high ratio)" },
+      { "type": "c8g.2xlarge", "usd_hr": 0.3190,  "vcpu": 8,   "mem_gib": 16,   "cpu": "AWS Graviton4 (Arm)", "family": "Compute optimised" },
+      { "type": "m8g.2xlarge", "usd_hr": 0.3590,  "vcpu": 8,   "mem_gib": 32,   "cpu": "AWS Graviton4 (Arm)", "family": "General purpose" },
+      { "type": "g6.xlarge",   "usd_hr": 0.8048,  "vcpu": 4,   "mem_gib": 16,   "cpu": "AMD + NVIDIA L4 GPU", "family": "Accelerated computing" },
+      { "type": "p5.48xlarge", "usd_hr": 55.0400, "vcpu": 192, "mem_gib": 2048, "cpu": "AMD + 8x NVIDIA H100", "family": "Accelerated computing" }
+    ],
+    "monthly_basis": "730 hours per month (derived: usd_hr x 730)",
+    "graviton_vs_intel": [
+      { "pair": "General purpose (2 vCPU / 8 GiB)",  "arm": "m8g.large", "arm_usd_hr": 0.0898, "x86": "m7i.large", "x86_usd_hr": 0.1008, "saving_pct": 10.9 },
+      { "pair": "Compute optimised (2 vCPU / 4 GiB)", "arm": "c8g.large", "arm_usd_hr": 0.0798, "x86": "c7i.large", "x86_usd_hr": 0.0892, "saving_pct": 10.5 },
+      { "pair": "Memory optimised (2 vCPU / 16 GiB)", "arm": "r8g.large", "arm_usd_hr": 0.1178, "x86": "r7i.large", "x86_usd_hr": 0.1323, "saving_pct": 11.0 },
+      { "pair": "Burstable (2 vCPU / 1 GiB)",         "arm": "t4g.micro", "arm_usd_hr": 0.0084, "x86": "t3.micro",  "x86_usd_hr": 0.0104, "saving_pct": 19.2 }
+    ],
+    "saving_pct_basis": "derived: (x86 - arm) / x86 x 100"
+  },
+
+  "pricing_models": {
+    "source": "AWS EC2 pricing page and AWS Savings Plans pricing page",
+    "source_urls": [
+      "https://aws.amazon.com/ec2/pricing/",
+      "https://aws.amazon.com/savingsplans/compute-pricing/"
+    ],
+    "claims": [
+      { "model": "On-Demand",            "max_discount_pct": 0,  "pay_share_pct": 100, "commitment": "none",                    "quote": "baseline list price" },
+      { "model": "Compute Savings Plan", "max_discount_pct": 66, "pay_share_pct": 34,  "commitment": "1 or 3 year $/hour spend", "quote": "\"reduce your costs by up to 66%\" (AWS, Savings Plans page)" },
+      { "model": "Savings Plans (max)",  "max_discount_pct": 72, "pay_share_pct": 28,  "commitment": "1 or 3 year $/hour spend", "quote": "\"up to 72% compared to On-Demand prices in exchange for a usage commitment\" (AWS, EC2 pricing page)" },
+      { "model": "Spot",                 "max_discount_pct": 90, "pay_share_pct": 10,  "commitment": "none; 2-minute interruption notice", "quote": "\"a discount of up to 90% compared to On-Demand prices\" (AWS, EC2 pricing page)" }
+    ],
+    "warning": "These are AWS's own published maximum discounts, not measured averages. Real discounts vary by instance type, region and term."
+  },
+
+  "deliberately_not_quoted": {
+    "ebs_gp3_gb_month": "AWS serves EBS prices on aws.amazon.com/ebs/pricing from a client-side template, and no equivalent machine-readable feed was found for it. Rather than quote a remembered figure, both documents describe the EBS charge qualitatively ('per GB-month, for as long as the volume exists') and point the reader at AWS's page for the current rate. Same rule as everything else here: nothing is asserted from a source that was not read."
+  },
+
+  "scout_hub_check": {
+    "endpoint": "https://ai-scout-hub.anashasiba91.workers.dev/api/discoveries?limit=1000",
+    "checked": "2026-09-07",
+    "total_items": 510,
+    "approved": 497,
+    "rejected": 13,
+    "by_source": { "youtube": 265, "github": 170, "hackernews": 75 },
+    "finding": "The feed is an AI-tooling discovery stream (LLM inference, agent harnesses, AI dev tools). It contains no cloud-computing report template, no diagram-template repository and no AWS/EC2 teaching material. Nearest matches were openai/tart-guest-agent and openai/softnet (macOS VM tooling, not cloud IaaS) and microsoft/flint-chart (a chart language). Nothing was reusable for this deliverable, so no repository was taken from it."
+  }
+}

@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Computing on AWS — Presentation</title>
+<style>
+  :root{
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+    --surface-1:#fcfcfb; --page:#f9f9f7;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a;
+    --good:#0ca30c; --critical:#d03b3b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:#111; color:var(--text-primary);
+    font-family:var(--sans); display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+
+  /* One 16:9 stage, scaled to the viewport. Slides are absolutely positioned inside. */
+  #stage{
+    position:relative; width:min(100vw, calc(100vh * 16 / 9));
+    height:min(100vh, calc(100vw * 9 / 16));
+    background:var(--surface-1); overflow:hidden;
+  }
+  .slide{
+    position:absolute; inset:0; padding:4.2% 5% 6%;
+    display:none; flex-direction:column;
+    container-type:size;
+  }
+  .slide.on{display:flex}
+
+  /* Type scale is in cqw so everything scales with the stage, never with the window font size */
+  h1{font-size:5.2cqw; line-height:1.1; margin:0 0 1.6cqw; letter-spacing:-.02em}
+  h2{font-size:3.4cqw; line-height:1.15; margin:0 0 .6cqw; letter-spacing:-.015em}
+  .kicker{font-size:1.25cqw; text-transform:uppercase; letter-spacing:.14em; color:var(--series-1); font-weight:650; margin:0 0 1cqw}
+  .lede{font-size:1.85cqw; line-height:1.5; color:var(--text-secondary); margin:0 0 1.6cqw; max-width:78%}
+  p,li{font-size:1.55cqw; line-height:1.55; margin:0 0 .8cqw}
+  ul,ol{margin:0 0 1cqw; padding-left:2.2cqw}
+  li{margin:.45cqw 0}
+  strong{font-weight:650}
+  code{font-family:var(--mono); font-size:.92em; background:#f0efec; padding:.06em .3em; border-radius:3px}
+  em{color:var(--text-secondary)}
+
+  .rule{height:3px; background:var(--text-primary); margin:0 0 2cqw; width:100%}
+  .body{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:3cqw; align-items:center}
+  .two.wide-left{grid-template-columns:1.25fr 1fr}
+
+  svg.fig{width:100%; height:auto; max-height:74cqh; display:block}
+  svg text{font-family:var(--sans); fill:var(--text-primary)}
+  .t-title{font-size:13px; font-weight:600}
+  .t-axis{font-size:11px; fill:#898781}
+  .t-lbl{font-size:11px; fill:#52514e}
+  .t-val{font-size:11px; font-weight:600; font-variant-numeric:tabular-nums}
+  .t-sm{font-size:9.5px; fill:#52514e}
+  .t-box{font-size:11px; font-weight:600}
+  .t-boxs{font-size:9px; fill:#52514e}
+  .gridline{stroke:#e1e0d9; stroke-width:1}
+  .baseline{stroke:#c3c2b7; stroke-width:1}
+  .lineser{fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+  .node{fill:#fff; stroke:#c3c2b7; stroke-width:1.2; rx:5}
+  .zone{fill:none; stroke:#c3c2b7; stroke-width:1; stroke-dasharray:5 4; rx:7}
+  .flow{stroke:#52514e; stroke-width:1.4; fill:none}
+
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:1.4cqw}
+  .tile{border:1px solid var(--border); border-radius:6px; padding:1.6cqw 1.4cqw; background:var(--surface-1)}
+  .tile .v{font-size:4cqw; font-weight:680; letter-spacing:-.03em; line-height:1; color:var(--series-1)}
+  .tile .k{font-size:1.15cqw; color:var(--text-secondary); margin-top:.7cqw; line-height:1.4}
+
+  table{border-collapse:collapse; width:100%; font-size:1.25cqw}
+  th,td{text-align:left; padding:.55cqw .8cqw; border-bottom:1px solid var(--grid); vertical-align:top}
+  thead th{border-bottom:1.5px solid var(--axis); font-size:1.05cqw; text-transform:uppercase; letter-spacing:.06em; color:var(--text-secondary)}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+
+  pre{
+    font-family:var(--mono); font-size:1.15cqw; line-height:1.5; margin:0;
+    background:#f4f3ef; border:1px solid var(--border); border-left:3px solid var(--series-1);
+    border-radius:5px; padding:1.4cqw 1.6cqw; overflow:auto;
+  }
+  pre code{background:none; padding:0; font-size:1em}
+
+  .card{border:1px solid var(--border); border-radius:6px; padding:1.4cqw 1.6cqw; background:#f4f3ef}
+  .card.bad{border-left:4px solid var(--critical); background:#fdf3f3}
+  .card.good{border-left:4px solid var(--good); background:#f2f8f2}
+  .card.info{border-left:4px solid var(--series-1)}
+  .card h3{font-size:1.5cqw; margin:0 0 .5cqw}
+  .card p,.card li{font-size:1.25cqw; margin:0 0 .4cqw}
+  .stack{display:grid; gap:1.1cqw}
+
+  .foot{
+    position:absolute; left:5%; right:5%; bottom:2.2%;
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:1.05cqw; color:var(--muted); border-top:1px solid var(--grid); padding-top:.7cqw;
+  }
+  .foot .src{max-width:70%}
+
+  .fill{color:var(--muted); border-bottom:1px dotted var(--axis); display:inline-block; min-width:9cqw}
+  .cover-meta{font-size:1.35cqw; color:var(--text-secondary); line-height:2}
+
+  /* on-screen chrome */
+  #hint{
+    position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+    font-size:11px; color:#9a9a94; background:rgba(0,0,0,.55); padding:5px 12px; border-radius:99px;
+    transition:opacity .4s;
+  }
+  #hint.hide{opacity:0}
+
+  @media print{
+    @page{size:A4 landscape; margin:8mm}
+    html,body{height:auto; overflow:visible; background:#fff; display:block}
+    #stage{width:100%; height:auto; overflow:visible}
+    /* 158mm keeps the printed slide at the same 16:9 the on-screen stage uses,
+       so the cqw type scale lands the same way it does on screen. */
+    .slide{
+      display:flex !important; position:relative; inset:auto;
+      width:100%; height:158mm; overflow:hidden;
+      page-break-after:always; break-after:page;
+      border:1px solid #ddd; margin-bottom:4mm; container-type:size;
+    }
+    #hint{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 ---------------------------------------------------------------- -->
+<section class="slide on">
+  <div class="body">
+    <p class="kicker">Cloud Computing — Project Presentation</p>
+    <h1>Cloud Computing on<br>Amazon Web Services</h1>
+    <p class="lede">Market position, service architecture, virtual machine provisioning and cost engineering — with a reference implementation that runs.</p>
+    <div class="cover-meta">
+      Student <span class="fill">&nbsp;</span> &nbsp;·&nbsp; ID <span class="fill">&nbsp;</span><br>
+      Course <span class="fill">&nbsp;</span> &nbsp;·&nbsp; Instructor <span class="fill">&nbsp;</span><br>
+      Date <span class="fill">&nbsp;</span>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Every figure sourced in data/figures.json · prices retrieved 7 Sept 2026</span><span></span></div>
+</section>
+
+<!-- 2 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">Agenda</p>
+  <h2>What this presentation covers</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two">
+      <ol>
+        <li><strong>What cloud computing is</strong> — and where the responsibility boundary sits</li>
+        <li><strong>The market</strong> — who leads, who is gaining, and how fast it is growing</li>
+        <li><strong>AWS infrastructure</strong> — regions, availability zones, VPCs</li>
+        <li><strong>Anatomy of a virtual machine</strong> — the eight decisions in one launch</li>
+      </ol>
+      <ol start="5">
+        <li><strong>Setting one up</strong> — console, CLI, and infrastructure as code</li>
+        <li><strong>Reference architecture</strong> — the data flow that survives a failure</li>
+        <li><strong>Pricing</strong> — where the money actually goes</li>
+        <li><strong>Use cases, security, and the comparison</strong></li>
+      </ol>
+    </div>
+  </div>
+  <div class="foot"><span class="src"></span><span>2</span></div>
+</section>
+
+<!-- 3 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">1 — Definition</p>
+  <h2>Cloud computing, per NIST</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <p class="lede">On-demand network access to a shared pool of configurable computing resources, rapidly provisioned and released with minimal management effort.</p>
+    <div class="two">
+      <ul>
+        <li><strong>On-demand self-service</strong> — no purchase order, no ticket, no human</li>
+        <li><strong>Broad network access</strong> — standard protocols, any client</li>
+        <li><strong>Resource pooling</strong> — your VM is a slice of a bigger machine</li>
+      </ul>
+      <ul>
+        <li><strong>Rapid elasticity</strong> — capacity scales out and back in</li>
+        <li><strong>Measured service</strong> — metered per instance-second, per GB-month, per request</li>
+      </ul>
+    </div>
+    <div class="card info"><p><strong>All five, or it is not cloud.</strong> Measured service is the one that turns an architecture decision into a line on an invoice — which is why half of this presentation is about cost.</p></div>
+  </div>
+  <div class="foot"><span class="src">NIST SP 800-145</span><span>3</span></div>
+</section>
+
+<!-- 4 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">1 — Service models</p>
+  <h2>IaaS, PaaS, SaaS: where your responsibility ends</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 320" role="img" aria-label="Responsibility layers across on-premises, IaaS, PaaS and SaaS.">
+      <text class="t-lbl" x="200" y="40" text-anchor="middle" font-weight="600">On-premises</text>
+      <text class="t-lbl" x="336" y="40" text-anchor="middle" font-weight="600">IaaS — EC2</text>
+      <text class="t-lbl" x="472" y="40" text-anchor="middle" font-weight="600">PaaS</text>
+      <text class="t-lbl" x="608" y="40" text-anchor="middle" font-weight="600">SaaS</text>
+      <g class="t-lbl" text-anchor="end">
+        <text x="150" y="66">Application</text><text x="150" y="92">Data</text><text x="150" y="118">Runtime</text>
+        <text x="150" y="144">Middleware</text><text x="150" y="170">Operating system</text><text x="150" y="196">Virtualisation</text>
+        <text x="150" y="222">Servers</text><text x="150" y="248">Storage</text><text x="150" y="274">Networking</text>
+      </g>
+      <g fill="#fff" stroke="#2a78d6" stroke-width="1.3">
+        <rect x="152" y="54" width="96" height="22" rx="3"/><rect x="152" y="80" width="96" height="22" rx="3"/>
+        <rect x="152" y="106" width="96" height="22" rx="3"/><rect x="152" y="132" width="96" height="22" rx="3"/>
+        <rect x="152" y="158" width="96" height="22" rx="3"/><rect x="152" y="184" width="96" height="22" rx="3"/>
+        <rect x="152" y="210" width="96" height="22" rx="3"/><rect x="152" y="236" width="96" height="22" rx="3"/>
+        <rect x="152" y="262" width="96" height="22" rx="3"/>
+        <rect x="288" y="54" width="96" height="22" rx="3"/><rect x="288" y="80" width="96" height="22" rx="3"/>
+        <rect x="288" y="106" width="96" height="22" rx="3"/><rect x="288" y="132" width="96" height="22" rx="3"/>
+        <rect x="288" y="158" width="96" height="22" rx="3"/>
+        <rect x="424" y="54" width="96" height="22" rx="3"/><rect x="424" y="80" width="96" height="22" rx="3"/>
+      </g>
+      <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+        <rect x="288" y="184" width="96" height="22" rx="3"/><rect x="288" y="210" width="96" height="22" rx="3"/>
+        <rect x="288" y="236" width="96" height="22" rx="3"/><rect x="288" y="262" width="96" height="22" rx="3"/>
+        <rect x="424" y="106" width="96" height="22" rx="3"/><rect x="424" y="132" width="96" height="22" rx="3"/>
+        <rect x="424" y="158" width="96" height="22" rx="3"/><rect x="424" y="184" width="96" height="22" rx="3"/>
+        <rect x="424" y="210" width="96" height="22" rx="3"/><rect x="424" y="236" width="96" height="22" rx="3"/>
+        <rect x="424" y="262" width="96" height="22" rx="3"/>
+        <rect x="560" y="54" width="96" height="22" rx="3"/><rect x="560" y="80" width="96" height="22" rx="3"/>
+        <rect x="560" y="106" width="96" height="22" rx="3"/><rect x="560" y="132" width="96" height="22" rx="3"/>
+        <rect x="560" y="158" width="96" height="22" rx="3"/><rect x="560" y="184" width="96" height="22" rx="3"/>
+        <rect x="560" y="210" width="96" height="22" rx="3"/><rect x="560" y="236" width="96" height="22" rx="3"/>
+        <rect x="560" y="262" width="96" height="22" rx="3"/>
+      </g>
+      <line x1="288" y1="181" x2="384" y2="181" stroke="#d03b3b" stroke-width="2"/>
+      <g transform="translate(152,304)">
+        <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">Provider manages</text>
+        <rect x="150" y="-9" width="12" height="12" rx="2" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/><text class="t-lbl" x="168" y="1">You manage</text>
+        <line x1="285" y1="-3" x2="309" y2="-3" stroke="#d03b3b" stroke-width="2"/>
+        <text class="t-lbl" x="315" y="1" fill="#d03b3b">the EC2 boundary — you own the OS and above</text>
+      </g>
+    </svg>
+  </div>
+  <div class="foot"><span class="src">Report Figure 1</span><span>4</span></div>
+</section>
+
+<!-- 5 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">2 — The market</p>
+  <h2>One quarter of cloud spending</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="tiles">
+      <div class="tile"><div class="v">$143.4B</div><div class="k">Worldwide cloud infrastructure spend, Q2 2026 — a single quarter</div></div>
+      <div class="tile"><div class="v">43%</div><div class="k">Year-on-year growth — highest in eight years, 11th successive quarter of acceleration</div></div>
+      <div class="tile"><div class="v">$500B</div><div class="k">Trailing twelve-month market revenue</div></div>
+      <div class="tile"><div class="v">67%</div><div class="k">Of public cloud held by AWS, Azure and Google combined</div></div>
+    </div>
+    <p style="margin-top:2cqw">The market has <strong>doubled in eleven quarters</strong>. Synergy attributes the acceleration primarily to generative AI: GenAI-specific cloud services grew <strong>165% year on year</strong> in the same quarter.</p>
+  </div>
+  <div class="foot"><span class="src">Synergy Research Group, 30 July 2026</span><span>5</span></div>
+</section>
+
+<!-- 6 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">2 — The market</p>
+  <h2>Market share: AWS leads, Google gains</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 390" role="img" aria-label="Line chart of cloud market share Q1 2025 to Q2 2026: AWS 29 to 28 percent, Azure 22 to 20, Google 12 to 15.">
+      <g>
+        <line class="gridline" x1="70" y1="40" x2="700" y2="40"/><line class="gridline" x1="70" y1="105" x2="700" y2="105"/>
+        <line class="gridline" x1="70" y1="170" x2="700" y2="170"/><line class="gridline" x1="70" y1="235" x2="700" y2="235"/>
+        <line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+      </g>
+      <g class="t-axis" text-anchor="end">
+        <text x="60" y="44">32%</text><text x="60" y="109">24%</text><text x="60" y="174">16%</text><text x="60" y="239">8%</text><text x="60" y="304">0%</text>
+      </g>
+      <g class="t-axis" text-anchor="middle">
+        <text x="70" y="320">Q1 ’25</text><text x="196" y="320">Q2 ’25</text><text x="322" y="320">Q3 ’25</text>
+        <text x="448" y="320">Q4 ’25</text><text x="574" y="320">Q1 ’26</text><text x="700" y="320">Q2 ’26</text>
+      </g>
+      <polyline class="lineser" stroke="#1baf7a" points="70,202.5 196,194.4 322,194.4 448,186.3 574,186.3 700,178.1"/>
+      <g fill="#1baf7a" stroke="#fcfcfb" stroke-width="2">
+        <circle cx="70" cy="202.5" r="4.5"/><circle cx="196" cy="194.4" r="4.5"/><circle cx="322" cy="194.4" r="4.5"/>
+        <circle cx="448" cy="186.3" r="4.5"/><circle cx="574" cy="186.3" r="4.5"/><circle cx="700" cy="178.1" r="4.5"/>
+      </g>
+      <text class="t-val" x="70" y="220" text-anchor="middle">12</text><text class="t-val" x="700" y="168" text-anchor="middle">15</text>
+      <text class="t-lbl" x="712" y="182" font-weight="600">Google</text>
+      <polyline class="lineser" stroke="#eb6834" points="70,121.3 196,137.5 322,137.5 448,129.4 574,129.4 700,137.5"/>
+      <g fill="#eb6834" stroke="#fcfcfb" stroke-width="2">
+        <circle cx="70" cy="121.3" r="4.5"/><circle cx="196" cy="137.5" r="4.5"/><circle cx="322" cy="137.5" r="4.5"/>
+        <circle cx="448" cy="129.4" r="4.5"/><circle cx="574" cy="129.4" r="4.5"/><circle cx="700" cy="137.5" r="4.5"/>
+      </g>
+      <text class="t-val" x="70" y="112" text-anchor="middle">22</text><text class="t-val" x="700" y="128" text-anchor="middle">20</text>
+      <text class="t-lbl" x="712" y="141" font-weight="600">Azure</text>
+      <polyline class="lineser" stroke="#2a78d6" points="70,64.4 196,56.3 322,64.4 448,72.5 574,72.5 700,72.5"/>
+      <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+        <circle cx="70" cy="64.4" r="4.5"/><circle cx="196" cy="56.3" r="4.5"/><circle cx="322" cy="64.4" r="4.5"/>
+        <circle cx="448" cy="72.5" r="4.5"/><circle cx="574" cy="72.5" r="4.5"/><circle cx="700" cy="72.5" r="4.5"/>
+      </g>
+      <text class="t-val" x="70" y="55" text-anchor="middle">29</text><text class="t-val" x="196" y="47" text-anchor="middle">30</text><text class="t-val" x="700" y="63" text-anchor="middle">28</text>
+      <text class="t-lbl" x="712" y="76" font-weight="600">AWS</text>
+      <g transform="translate(70,352)">
+        <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">AWS</text>
+        <rect x="80" y="-9" width="12" height="12" rx="2" fill="#eb6834"/><text class="t-lbl" x="98" y="1">Microsoft Azure</text>
+        <rect x="215" y="-9" width="12" height="12" rx="2" fill="#1baf7a"/><text class="t-lbl" x="233" y="1">Google Cloud</text>
+      </g>
+      <text class="t-sm" x="70" y="378">Percent of worldwide enterprise spending on cloud infrastructure services. Source: Synergy Research Group quarterly releases.</text>
+    </svg>
+  </div>
+  <div class="foot"><span class="src">Report Figure 2 · AWS −2 points, Google +3 points over six quarters</span><span>6</span></div>
+</section>
+
+<!-- 7 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">2 — The market</p>
+  <h2>…but share of <em>what</em>?</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two wide-left">
+      <svg class="fig" viewBox="0 0 760 340" role="img" aria-label="Bar chart of quarterly cloud spending rising from 94 to 143.4 billion dollars.">
+        <g>
+          <line class="gridline" x1="70" y1="40" x2="700" y2="40"/><line class="gridline" x1="70" y1="127" x2="700" y2="127"/>
+          <line class="gridline" x1="70" y1="213" x2="700" y2="213"/><line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+        </g>
+        <g class="t-axis" text-anchor="end"><text x="60" y="44">150</text><text x="60" y="131">100</text><text x="60" y="217">50</text><text x="60" y="304">0</text></g>
+        <g fill="#2a78d6">
+          <rect x="91.5" y="137.1" width="62" height="162.9" rx="4"/><rect x="196.5" y="128.4" width="62" height="171.6" rx="4"/>
+          <rect x="301.5" y="115.4" width="62" height="184.6" rx="4"/><rect x="406.5" y="93.6" width="62" height="206.4" rx="4"/>
+          <rect x="511.5" y="76.4" width="62" height="223.6" rx="4"/><rect x="616.5" y="51.5" width="62" height="248.5" rx="4"/>
+          <rect x="91.5" y="292" width="62" height="8"/><rect x="196.5" y="292" width="62" height="8"/><rect x="301.5" y="292" width="62" height="8"/>
+          <rect x="406.5" y="292" width="62" height="8"/><rect x="511.5" y="292" width="62" height="8"/><rect x="616.5" y="292" width="62" height="8"/>
+        </g>
+        <g class="t-val" text-anchor="middle">
+          <text x="122.5" y="129">94.0</text><text x="227.5" y="120">99.0</text><text x="332.5" y="107">106.5</text>
+          <text x="437.5" y="86">119.1</text><text x="542.5" y="68">129.0</text><text x="647.5" y="43">143.4</text>
+        </g>
+        <g class="t-axis" text-anchor="middle">
+          <text x="122.5" y="320">Q1 ’25</text><text x="227.5" y="320">Q2 ’25</text><text x="332.5" y="320">Q3 ’25</text>
+          <text x="437.5" y="320">Q4 ’25</text><text x="542.5" y="320">Q1 ’26</text><text x="647.5" y="320">Q2 ’26</text>
+        </g>
+        <text class="t-sm" x="70" y="336">Quarterly worldwide cloud infrastructure spending, US$ billions. Q3 ’25 derived. Source: Synergy Research Group.</text>
+      </svg>
+      <div class="stack">
+        <div class="card good"><h3>+52.6%</h3><p>Market growth across these six quarters (143.4 ÷ 94.0).</p></div>
+        <div class="card info"><p>AWS lost <strong>two points of share</strong> across a market that grew by <strong>half</strong>. Its absolute revenue rose substantially over the same period.</p><p style="margin:0"><em>A falling share of a market growing 43% a year is not a decline.</em></p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Report Figure 3</span><span>7</span></div>
+</section>
+
+<!-- 8 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">2 — The choice</p>
+  <h2>Why this project examines AWS</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="stack">
+      <div class="card info"><h3>1 · It is the largest</h3><p>28% of a $143bn quarter. More workloads run here than anywhere else, so understanding it is the most consequential.</p></div>
+      <div class="card info"><h3>2 · It is the oldest</h3><p>EC2 launched in 2006. Its abstractions — instance, AMI, security group, availability zone — were copied by its competitors, so the knowledge transfers almost directly to Azure and Google Cloud.</p></div>
+      <div class="card info"><h3>3 · Its pricing is public and machine-readable</h3><p>Every price in this presentation was read from the same feed the AWS pricing page reads. The cost analysis can be <em>verified</em>, not just believed.</p></div>
+    </div>
+    <p style="margin-top:1.4cqw"><em>This is not an endorsement — slide 21 compares all three, and slide 22 sets out what choosing AWS costs you.</em></p>
+  </div>
+  <div class="foot"><span class="src"></span><span>8</span></div>
+</section>
+
+<!-- 9 ---------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">3 — Infrastructure</p>
+  <h2>Block diagram: region → AZ → VPC → subnet → instance</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 400" role="img" aria-label="Block diagram of an AWS region containing a VPC with two availability zones, each with a public subnet holding an EC2 instance and a private subnet holding a database.">
+      <rect x="20" y="14" width="720" height="366" rx="9" fill="#f4f8fd" stroke="#2a78d6" stroke-width="1.6"/>
+      <text class="t-box" x="34" y="34" fill="#1c5cab">AWS Region — us-east-1</text>
+      <text class="t-boxs" x="34" y="47">Own pricing, own catalogue, own failure domain. Data stays here unless you move it.</text>
+      <rect class="node" x="300" y="58" width="160" height="28"/>
+      <text class="t-box" x="380" y="76" text-anchor="middle">Internet Gateway</text>
+      <line class="flow" x1="380" y1="86" x2="380" y2="102"/>
+      <rect x="40" y="102" width="680" height="264" rx="8" fill="#fcfcfb" stroke="#52514e" stroke-width="1.3"/>
+      <text class="t-box" x="54" y="121">VPC — 10.0.0.0/16 · spans every AZ in the region</text>
+      <rect class="zone" x="56" y="132" width="320" height="220"/>
+      <text class="t-box" x="70" y="150">Availability Zone us-east-1a</text>
+      <rect x="70" y="160" width="292" height="82" rx="6" fill="#eef6ee" stroke="#1baf7a" stroke-width="1.2"/>
+      <text class="t-boxs" x="82" y="176" font-weight="600">Public subnet 10.0.1.0/24 — route to IGW</text>
+      <rect class="node" x="82" y="184" width="128" height="48"/>
+      <text class="t-box" x="146" y="203" text-anchor="middle">EC2 web-01</text><text class="t-boxs" x="146" y="217" text-anchor="middle">t4g.micro</text>
+      <rect class="node" x="222" y="184" width="128" height="48"/>
+      <text class="t-box" x="286" y="203" text-anchor="middle">NAT Gateway</text><text class="t-boxs" x="286" y="217" text-anchor="middle">outbound only</text>
+      <rect x="70" y="254" width="292" height="82" rx="6" fill="#faf4f2" stroke="#eb6834" stroke-width="1.2"/>
+      <text class="t-boxs" x="82" y="270" font-weight="600">Private subnet 10.0.11.0/24 — no route to IGW</text>
+      <rect class="node" x="82" y="278" width="268" height="48"/>
+      <text class="t-box" x="216" y="297" text-anchor="middle">RDS primary</text>
+      <text class="t-boxs" x="216" y="311" text-anchor="middle">unreachable by routing, not by firewall</text>
+      <rect class="zone" x="392" y="132" width="312" height="220"/>
+      <text class="t-box" x="406" y="150">Availability Zone us-east-1b</text>
+      <rect x="406" y="160" width="284" height="82" rx="6" fill="#eef6ee" stroke="#1baf7a" stroke-width="1.2"/>
+      <text class="t-boxs" x="418" y="176" font-weight="600">Public subnet 10.0.2.0/24</text>
+      <rect class="node" x="418" y="184" width="128" height="48"/>
+      <text class="t-box" x="482" y="203" text-anchor="middle">EC2 web-02</text><text class="t-boxs" x="482" y="217" text-anchor="middle">t4g.micro</text>
+      <rect x="406" y="254" width="284" height="82" rx="6" fill="#faf4f2" stroke="#eb6834" stroke-width="1.2"/>
+      <text class="t-boxs" x="418" y="270" font-weight="600">Private subnet 10.0.12.0/24</text>
+      <rect class="node" x="418" y="278" width="260" height="48"/>
+      <text class="t-box" x="548" y="297" text-anchor="middle">RDS standby</text><text class="t-boxs" x="548" y="311" text-anchor="middle">synchronous replica</text>
+      <line class="flow" x1="362" y1="302" x2="418" y2="302" stroke-dasharray="4 3"/>
+      <text class="t-boxs" x="390" y="294" text-anchor="middle">replication</text>
+      <text class="t-sm" x="20" y="396">A subnet lives in exactly one AZ; a VPC spans them all. That asymmetry is what makes multi-AZ design a subnet decision.</text>
+    </svg>
+  </div>
+  <div class="foot"><span class="src">Report Figure 4 · One AZ = the availability of one data centre. Two AZs cost nothing extra in instance price.</span><span>9</span></div>
+</section>
+
+<!-- 10 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">4 — Anatomy</p>
+  <h2>One EC2 instance = eight decisions</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 380" role="img" aria-label="Component diagram of an EC2 instance with AMI, instance type, user data, EBS volume, network interface, security group, key pair and IAM profile attached.">
+      <rect x="290" y="160" width="180" height="70" rx="8" fill="#2a78d6"/>
+      <text x="380" y="187" text-anchor="middle" fill="#fff" class="t-box" font-size="13">EC2 instance</text>
+      <text x="380" y="204" text-anchor="middle" fill="#dbe9fa" class="t-boxs">i-0a1b2c3d4e5f</text>
+      <text x="380" y="218" text-anchor="middle" fill="#dbe9fa" class="t-boxs">a VM on shared hardware</text>
+      <rect class="node" x="40" y="46" width="200" height="60"/>
+      <text class="t-box" x="52" y="66">AMI — machine image</text>
+      <text class="t-boxs" x="52" y="81">Disk template. Region-specific.</text><text class="t-boxs" x="52" y="94" fill="#d03b3b">Fixed at launch.</text>
+      <rect class="node" x="280" y="46" width="200" height="60"/>
+      <text class="t-box" x="292" y="66">Instance type — m8g.large</text>
+      <text class="t-boxs" x="292" y="81">family · generation · CPU · size.</text><text class="t-boxs" x="292" y="94">Changeable while stopped.</text>
+      <rect class="node" x="520" y="46" width="200" height="60"/>
+      <text class="t-box" x="532" y="66">User data — bootstrap</text>
+      <text class="t-boxs" x="532" y="81">Root script on first boot.</text><text class="t-boxs" x="532" y="94">Never put a secret in it.</text>
+      <rect class="node" x="40" y="158" width="200" height="60"/>
+      <text class="t-box" x="52" y="178">EBS root volume — gp3</text>
+      <text class="t-boxs" x="52" y="193">Network disk, own lifetime.</text><text class="t-boxs" x="52" y="206" fill="#d03b3b">Bills while stopped.</text>
+      <rect class="node" x="520" y="158" width="200" height="60"/>
+      <text class="t-box" x="532" y="178">ENI — network interface</text>
+      <text class="t-boxs" x="532" y="193">Private IP stable; public IP</text><text class="t-boxs" x="532" y="206">changes on stop/start.</text>
+      <rect class="node" x="40" y="266" width="200" height="60"/>
+      <text class="t-box" x="52" y="286">Security group — firewall</text>
+      <text class="t-boxs" x="52" y="301">Stateful, allow-only.</text><text class="t-boxs" x="52" y="314">No deny rule — absence is denial.</text>
+      <rect class="node" x="280" y="266" width="200" height="60"/>
+      <text class="t-box" x="292" y="286">Key pair — SSH login</text>
+      <text class="t-boxs" x="292" y="301">AWS holds the public half.</text><text class="t-boxs" x="292" y="314" fill="#d03b3b">Lose the private half → rebuild.</text>
+      <rect class="node" x="520" y="266" width="200" height="60"/>
+      <text class="t-box" x="532" y="286">IAM instance profile</text>
+      <text class="t-boxs" x="532" y="301">Temporary credentials via IMDS —</text><text class="t-boxs" x="532" y="314">so no static key on disk.</text>
+      <g class="flow">
+        <path d="M240 76 H265 V172 H290"/><path d="M380 106 V160"/><path d="M520 76 H495 V172 H470"/>
+        <path d="M240 188 H290"/><path d="M520 188 H470"/>
+        <path d="M240 296 H265 V220 H290"/><path d="M380 266 V230"/><path d="M520 296 H495 V220 H470"/>
+      </g>
+      <text class="t-sm" x="20" y="360">Fixed for the life of the instance: the AMI, the placement (subnet → AZ), and the key pair name. Everything else is changeable.</text>
+    </svg>
+  </div>
+  <div class="foot"><span class="src">Report Figure 5 · Reading the name: m8g.large = general purpose · gen 8 · Graviton · 2 vCPU</span><span>10</span></div>
+</section>
+
+<!-- 11 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">5 — Provisioning</p>
+  <h2>The same VM, three ways</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <thead><tr><th>Criterion</th><th>Console</th><th>AWS CLI</th><th>Terraform</th></tr></thead>
+      <tbody>
+        <tr><td>Time to first instance</td><td>~3 minutes</td><td>~90 seconds</td><td>~2 minutes</td></tr>
+        <tr><td>Repeatable identically</td><td>No</td><td>Yes — but duplicates on re-run</td><td><strong>Yes — re-run converges</strong></td></tr>
+        <tr><td>Reviewable before applying</td><td>No</td><td>No</td><td><strong>Yes — <code>terraform plan</code></strong></td></tr>
+        <tr><td>Clean removal</td><td>Manual, easy to orphan</td><td>Scripted, tag-based</td><td><strong><code>terraform destroy</code></strong></td></tr>
+        <tr><td>Best used for</td><td>Learning; one-off inspection</td><td>Automation inside scripts, CI</td><td>Anything that must exist tomorrow</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1.2cqw"><strong>Held constant across all three:</strong> us-east-1 · Amazon Linux 2023 arm64 · <code>t4g.micro</code> · 20 GiB encrypted gp3 · SSH from one IP, HTTP from anywhere · IMDSv2 required · nginx via user data.</p>
+  </div>
+  <div class="foot"><span class="src">Report Table 4 · code in terraform/ and scripts/</span><span>11</span></div>
+</section>
+
+<!-- 12 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">5.1 — Console</p>
+  <h2>Ten clicks, and the four that matter</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two">
+      <ol>
+        <li><strong>Region first</strong> — everything after is scoped to it</li>
+        <li>EC2 → Instances → <strong>Launch an instance</strong></li>
+        <li><strong>Name and tags</strong> — untagged estates become unbillable</li>
+        <li><strong>AMI</strong> — Amazon Linux 2023, architecture <em>64-bit Arm</em></li>
+        <li><strong>Instance type</strong> — <code>t4g.micro</code></li>
+        <li><strong>Key pair</strong> — ed25519, downloaded <em>once</em></li>
+        <li><strong>Network</strong> — subnet, public IP on, security group</li>
+        <li><strong>Storage</strong> — 20 GiB gp3, encrypted</li>
+        <li><strong>Advanced</strong> — metadata <em>V2 only</em>, paste user data</li>
+        <li><strong>Launch</strong> — wait for status checks <em>2/2</em>, not just <em>running</em></li>
+      </ol>
+      <div class="stack">
+        <div class="card bad"><h3>Where marks are lost</h3>
+          <p><strong>SSH source.</strong> The console offers “Anywhere” in one click. Choose <em>My IP</em>.</p>
+          <p><strong>The key file.</strong> Downloaded once. No recovery — lose it and you rebuild.</p>
+          <p><strong>Metadata version.</strong> Leave it at V1-and-V2 and one SSRF bug reads your IAM credentials.</p>
+          <p style="margin:0"><strong>Architecture mismatch.</strong> An x86 AMI will not launch on a Graviton type.</p>
+        </div>
+        <div class="card info"><p style="margin:0">The console is the right <em>first</em> path — it names every decision out loud. It is the wrong <em>tenth</em> path, because nothing you clicked is written down.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Report §5.1</span><span>12</span></div>
+</section>
+
+<!-- 13 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">5.2 — AWS CLI</p>
+  <h2>One command, and two habits worth more than it</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <pre><code>aws ec2 run-instances --region us-east-1 \
+  --image-id "$AMI_ID" --instance-type t4g.micro \
+  --key-name cloud-project-key --security-group-ids "$SG_ID" \
+  --user-data file://scripts/user-data.sh \
+  --metadata-options "HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=1" \
+  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":20,
+       "VolumeType":"gp3","Encrypted":true,"DeleteOnTermination":true}}]'</code></pre>
+    <div class="two" style="margin-top:1.4cqw">
+      <div class="card good"><h3>Resolve the AMI, never paste it</h3>
+        <pre style="margin-top:.6cqw"><code>aws ssm get-parameters --names \
+ /aws/service/ami-amazon-linux-latest/\
+al2023-ami-kernel-default-arm64</code></pre></div>
+      <div class="card good"><h3>Compute your own IP, never type /0</h3>
+        <pre style="margin-top:.6cqw"><code>MY_IP="$(curl -s https://checkip.amazonaws.com)/32"
+--ip-permissions "...IpRanges=[{CidrIp=$MY_IP}]"</code></pre></div>
+    </div>
+    <div class="card bad" style="margin-top:1.2cqw"><p style="margin:0"><strong>What this path exposes:</strong> run it twice and you get two instances, two security groups, two bills. It <em>creates</em> resources but does not <em>track</em> them — which is the entire argument for the next slide.</p></div>
+  </div>
+  <div class="foot"><span class="src">scripts/create-ec2-cli.sh — includes the tear-down path</span><span>13</span></div>
+</section>
+
+<!-- 14 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">5.3 — Infrastructure as code</p>
+  <h2>The instance, written down</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two wide-left">
+      <pre><code>resource "aws_instance" "vm" {
+  ami                    = data.aws_ami.al2023_arm.id
+  instance_type          = var.instance_type
+  subnet_id              = data.aws_subnets.default.ids[0]
+  vpc_security_group_ids = [aws_security_group.web.id]
+  key_name               = aws_key_pair.this.key_name
+  user_data              = file("../scripts/user-data.sh")
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+    encrypted   = true
+    delete_on_termination = true
+  }
+  metadata_options { http_tokens = "required" }
+  tags = { Name = var.name }
+}</code></pre>
+      <div class="stack">
+        <div class="card good"><h3>plan before apply</h3><p style="margin:0">You see what will change <em>before</em> anything changes.</p></div>
+        <div class="card good"><h3>diffable, reviewable</h3><p style="margin:0">Infrastructure goes through code review like code.</p></div>
+        <div class="card good"><h3>destroy is exact</h3><p style="margin:0">Removes what it created — the difference between a $6 exercise and a $60 one.</p></div>
+        <div class="card info"><p style="margin:0"><code>variables.tf</code> rejects <code>0.0.0.0/0</code> outright, so the most common security mistake in this assignment fails at <em>plan</em> time.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">terraform/main.tf · variables.tf · outputs.tf</span><span>14</span></div>
+</section>
+
+<!-- 15 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">5.5 — Lifecycle</p>
+  <h2>“Stopped” is not “free”</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 300" role="img" aria-label="EC2 lifecycle state machine from pending through running, stopping, stopped and terminated, with billing annotations.">
+      <rect class="node" x="34" y="86" width="118" height="54"/>
+      <text class="t-box" x="93" y="108" text-anchor="middle">pending</text><text class="t-boxs" x="93" y="124" text-anchor="middle">booting, user data runs</text>
+      <rect x="196" y="86" width="118" height="54" rx="5" fill="#2a78d6"/>
+      <text class="t-box" x="255" y="108" text-anchor="middle" fill="#fff">running</text><text class="t-boxs" x="255" y="124" text-anchor="middle" fill="#dbe9fa">serving traffic</text>
+      <rect class="node" x="358" y="86" width="118" height="54"/>
+      <text class="t-box" x="417" y="108" text-anchor="middle">stopping</text><text class="t-boxs" x="417" y="124" text-anchor="middle">shutting down</text>
+      <rect class="node" x="520" y="86" width="118" height="54"/>
+      <text class="t-box" x="579" y="108" text-anchor="middle">stopped</text><text class="t-boxs" x="579" y="124" text-anchor="middle">disk kept, CPU gone</text>
+      <rect class="node" x="358" y="206" width="118" height="54" stroke="#d03b3b"/>
+      <text class="t-box" x="417" y="228" text-anchor="middle" fill="#d03b3b">terminated</text><text class="t-boxs" x="417" y="244" text-anchor="middle">gone, irreversibly</text>
+      <defs>
+        <marker id="s-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#52514e"/></marker>
+        <marker id="s-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#d03b3b"/></marker>
+      </defs>
+      <g class="flow" marker-end="url(#s-ar)">
+        <path d="M152 113 H190"/><path d="M314 113 H352"/><path d="M476 113 H514"/><path d="M579 140 V170 H93 V140"/>
+      </g>
+      <g class="flow" stroke="#d03b3b" marker-end="url(#s-arr)">
+        <path d="M255 140 V233 H352"/><path d="M579 140 V233 H482"/>
+      </g>
+      <text class="t-boxs" x="336" y="163" text-anchor="middle">start — new public IP unless an Elastic IP is attached</text>
+      <text class="t-boxs" x="268" y="196" fill="#d03b3b">terminate</text>
+      <text class="t-boxs" x="560" y="196" fill="#d03b3b" text-anchor="end">terminate</text>
+      <text class="t-boxs" x="560" y="258">nothing is billed once the volume</text>
+      <text class="t-boxs" x="560" y="270">is deleted with the instance</text>
+      <text class="t-lbl" x="34" y="268" font-weight="600">What each state bills</text>
+      <text class="t-boxs" x="93" y="288" text-anchor="middle">EBS only</text>
+      <text class="t-boxs" x="255" y="288" text-anchor="middle" font-weight="600">instance + EBS</text>
+      <text class="t-boxs" x="417" y="288" text-anchor="middle">EBS only</text>
+      <text class="t-boxs" x="579" y="288" text-anchor="middle" fill="#d03b3b" font-weight="600">EBS still billed</text>
+    </svg>
+    <div class="card bad" style="margin-top:1cqw"><p style="margin:0">A stopped instance stops the instance-hour charge but its EBS volume keeps billing, <strong>per GB-month, for as long as the volume exists</strong>. Only <strong>terminate</strong> ends the charge. This one distinction accounts for most surprise bills in student accounts.</p></div>
+  </div>
+  <div class="foot"><span class="src">Report Figure 6</span><span>15</span></div>
+</section>
+
+<!-- 16 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">6 — Architecture</p>
+  <h2>Data flow: the same app, made survivable</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 440" role="img" aria-label="Data flow from user through Route 53 and CloudFront to a load balancer, then to EC2 instances in two availability zones, an RDS database pair, S3 and CloudWatch.">
+      <defs><marker id="s-fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#52514e"/></marker></defs>
+      <rect class="node" x="24" y="52" width="104" height="52"/>
+      <text class="t-box" x="76" y="75" text-anchor="middle">Route 53</text><text class="t-boxs" x="76" y="90" text-anchor="middle">DNS + health checks</text>
+      <rect class="node" x="24" y="150" width="104" height="52"/>
+      <text class="t-box" x="76" y="173" text-anchor="middle">User</text><text class="t-boxs" x="76" y="188" text-anchor="middle">browser / mobile</text>
+      <rect class="node" x="172" y="52" width="118" height="52"/>
+      <text class="t-box" x="231" y="75" text-anchor="middle">CloudFront</text><text class="t-boxs" x="231" y="90" text-anchor="middle">edge cache</text>
+      <rect x="172" y="138" width="118" height="54" rx="5" fill="#2a78d6"/>
+      <text class="t-box" x="231" y="160" text-anchor="middle" fill="#fff">Application</text><text class="t-box" x="231" y="177" text-anchor="middle" fill="#fff">Load Balancer</text>
+      <rect class="zone" x="330" y="52" width="196" height="140"/>
+      <text class="t-boxs" x="342" y="70" font-weight="600">AZ us-east-1a</text>
+      <rect class="node" x="346" y="78" width="164" height="44"/>
+      <text class="t-box" x="428" y="96" text-anchor="middle">EC2 web-01</text><text class="t-boxs" x="428" y="111" text-anchor="middle">Auto Scaling group</text>
+      <rect class="node" x="346" y="144" width="164" height="42"/>
+      <text class="t-box" x="428" y="161" text-anchor="middle">RDS primary</text><text class="t-boxs" x="428" y="176" text-anchor="middle">private subnet</text>
+      <rect class="zone" x="330" y="214" width="196" height="140"/>
+      <text class="t-boxs" x="342" y="232" font-weight="600">AZ us-east-1b</text>
+      <rect class="node" x="346" y="240" width="164" height="44"/>
+      <text class="t-box" x="428" y="258" text-anchor="middle">EC2 web-02</text><text class="t-boxs" x="428" y="273" text-anchor="middle">Auto Scaling group</text>
+      <rect class="node" x="346" y="306" width="164" height="42"/>
+      <text class="t-box" x="428" y="323" text-anchor="middle">RDS standby</text><text class="t-boxs" x="428" y="338" text-anchor="middle">synchronous replica</text>
+      <rect class="node" x="576" y="78" width="152" height="44"/>
+      <text class="t-box" x="652" y="96" text-anchor="middle">Amazon S3</text><text class="t-boxs" x="652" y="111" text-anchor="middle">images, uploads, backups</text>
+      <rect class="node" x="576" y="240" width="152" height="44"/>
+      <text class="t-box" x="652" y="258" text-anchor="middle">CloudWatch</text><text class="t-boxs" x="652" y="273" text-anchor="middle">metrics, logs, alarms</text>
+      <g class="flow" marker-end="url(#s-fa)">
+        <path d="M76 150 V110"/><path d="M128 78 H166"/><path d="M231 104 V132"/>
+        <path d="M290 155 H340"/><path d="M290 178 V262 H340"/>
+        <path d="M428 122 V140"/><path d="M428 284 V302"/>
+        <path d="M510 100 H570"/><path d="M510 262 H570"/>
+        <path d="M428 186 V210" stroke-dasharray="4 3"/>
+      </g>
+      <g class="t-boxs">
+        <text x="84" y="134">1 · DNS lookup</text><text x="147" y="70" text-anchor="middle">2 · CDN</text><text x="238" y="124">3 · miss</text>
+        <text x="294" y="148">4 · HTTP</text><text x="294" y="256">4 · HTTP</text>
+        <text x="514" y="94">5 · objects</text><text x="514" y="256">6 · metrics</text><text x="436" y="204">7 · replication</text>
+        <text x="434" y="136">SQL</text><text x="434" y="298">SQL (failover)</text>
+      </g>
+      <text class="t-sm" x="20" y="378" font-weight="600">3 · The cheapest request is the one your instances never see.  4 · The load balancer removes an unhealthy instance without human action.</text>
+      <text class="t-sm" x="20" y="394">5 · State moves outward to S3 and RDS, so compute becomes disposable — and disposable compute is what Auto Scaling needs.</text>
+      <text class="t-sm" x="20" y="410">7 · Synchronous replication to a second AZ is what lets the database survive losing a data centre.</text>
+      <text class="t-sm" x="20" y="430" font-weight="600" fill="#0b0b0b">Nothing here changes the instance. Availability is a property of what surrounds it.</text>
+    </svg>
+  </div>
+  <div class="foot"><span class="src">Report Figure 7</span><span>16</span></div>
+</section>
+
+<!-- 17 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">7 — Pricing</p>
+  <h2>The commercial model beats every technical trick</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 300" role="img" aria-label="Bar chart of the share of on-demand price paid: on-demand 100 percent, compute savings plan 34 percent, savings plans maximum 28 percent, spot 10 percent.">
+      <g>
+        <line class="gridline" x1="230" y1="30" x2="230" y2="222"/><line class="gridline" x1="347" y1="30" x2="347" y2="222"/>
+        <line class="gridline" x1="464" y1="30" x2="464" y2="222"/><line class="gridline" x1="581" y1="30" x2="581" y2="222"/>
+        <line class="baseline" x1="230" y1="222" x2="700" y2="222"/>
+      </g>
+      <g class="t-axis" text-anchor="middle"><text x="230" y="240">0%</text><text x="347" y="240">25%</text><text x="464" y="240">50%</text><text x="581" y="240">75%</text><text x="698" y="240">100%</text></g>
+      <g fill="#2a78d6">
+        <rect x="230" y="38" width="470" height="34" rx="4"/><rect x="230" y="84" width="160" height="34" rx="4"/>
+        <rect x="230" y="130" width="132" height="34" rx="4"/><rect x="230" y="176" width="47" height="34" rx="4"/>
+        <rect x="230" y="38" width="8" height="34"/><rect x="230" y="84" width="8" height="34"/>
+        <rect x="230" y="130" width="8" height="34"/><rect x="230" y="176" width="8" height="34"/>
+      </g>
+      <g class="t-lbl" text-anchor="end" font-weight="600">
+        <text x="220" y="54">On-Demand</text><text x="220" y="100">Compute Savings Plan</text>
+        <text x="220" y="146">Savings Plans (max)</text><text x="220" y="192">Spot</text>
+      </g>
+      <g class="t-boxs" text-anchor="end">
+        <text x="220" y="67">no commitment</text><text x="220" y="113">1 or 3 yr commitment</text>
+        <text x="220" y="159">1 or 3 yr, less flexible</text><text x="220" y="205">spare capacity, 2-min notice</text>
+      </g>
+      <g class="t-val" fill="#fff" text-anchor="end"><text x="690" y="60">100%</text><text x="380" y="106">34%</text><text x="352" y="152">28%</text></g>
+      <text class="t-val" x="287" y="198">10%</text>
+      <text class="t-sm" x="230" y="268">Share of the On-Demand list price you pay. AWS's published maximum discounts — ceilings, not typical results.</text>
+      <text class="t-sm" x="230" y="284">Source: aws.amazon.com/ec2/pricing and aws.amazon.com/savingsplans/compute-pricing, accessed 7 Sept 2026.</text>
+    </svg>
+    <p style="margin-top:1cqw"><strong>Cheapest actions first:</strong> ① turn it off out of hours ② right-size it ③ commit to a Savings Plan ④ use Spot for interruptible work ⑤ <em>then</em> optimise the processor for the last 11%.</p>
+  </div>
+  <div class="foot"><span class="src">Report Figure 8</span><span>17</span></div>
+</section>
+
+<!-- 18 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">7 — Pricing</p>
+  <h2>Graviton against Intel, like for like</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <svg class="fig" viewBox="0 0 760 370" role="img" aria-label="Grouped bar chart of hourly prices: m8g 0.0898 vs m7i 0.1008, c8g 0.0798 vs c7i 0.0892, r8g 0.1178 vs r7i 0.1323 dollars per hour.">
+      <g>
+        <line class="gridline" x1="70" y1="40" x2="700" y2="40"/><line class="gridline" x1="70" y1="105" x2="700" y2="105"/>
+        <line class="gridline" x1="70" y1="170" x2="700" y2="170"/><line class="gridline" x1="70" y1="235" x2="700" y2="235"/>
+        <line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+      </g>
+      <g class="t-axis" text-anchor="end"><text x="60" y="44">$0.14</text><text x="60" y="109">$0.105</text><text x="60" y="174">$0.07</text><text x="60" y="239">$0.035</text><text x="60" y="304">$0</text></g>
+      <g fill="#2a78d6">
+        <rect x="100" y="133.2" width="72" height="166.8" rx="4"/><rect x="310" y="151.8" width="72" height="148.2" rx="4"/><rect x="520" y="81.2" width="72" height="218.8" rx="4"/>
+        <rect x="100" y="292" width="72" height="8"/><rect x="310" y="292" width="72" height="8"/><rect x="520" y="292" width="72" height="8"/>
+      </g>
+      <g fill="#eb6834">
+        <rect x="178" y="112.8" width="72" height="187.2" rx="4"/><rect x="388" y="134.3" width="72" height="165.7" rx="4"/><rect x="598" y="54.3" width="72" height="245.7" rx="4"/>
+        <rect x="178" y="292" width="72" height="8"/><rect x="388" y="292" width="72" height="8"/><rect x="598" y="292" width="72" height="8"/>
+      </g>
+      <g class="t-val" text-anchor="middle">
+        <text x="136" y="125">.0898</text><text x="214" y="105">.1008</text>
+        <text x="346" y="144">.0798</text><text x="424" y="126">.0892</text>
+        <text x="556" y="73">.1178</text><text x="634" y="46">.1323</text>
+      </g>
+      <g class="t-boxs" text-anchor="middle" fill="#006300" font-weight="600">
+        <text x="175" y="318">11% cheaper</text><text x="385" y="318">11% cheaper</text><text x="595" y="318">11% cheaper</text>
+      </g>
+      <g class="t-axis" text-anchor="middle">
+        <text x="175" y="336">m8g.large vs m7i.large · 2 vCPU / 8 GiB</text>
+        <text x="385" y="336">c8g.large vs c7i.large · 2 vCPU / 4 GiB</text>
+        <text x="595" y="336">r8g.large vs r7i.large · 2 vCPU / 16 GiB</text>
+      </g>
+      <g transform="translate(70,362)">
+        <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">AWS Graviton4 (Arm)</text>
+        <rect x="190" y="-9" width="12" height="12" rx="2" fill="#eb6834"/><text class="t-lbl" x="208" y="1">Intel (x86)</text>
+        <text class="t-sm" x="340" y="1">On-Demand $/hour · us-east-1 · Linux · AWS pricing feed, 7 Sept 2026</text>
+      </g>
+    </svg>
+    <p style="margin-top:.6cqw">Identical vCPU and memory either side, so this is a clean like-for-like comparison: <strong>10.9%, 10.5%, 11.0%</strong>. The catch is real but small — your software needs an arm64 build.</p>
+  </div>
+  <div class="foot"><span class="src">Report Figure 9 · full price table in Report Table 5</span><span>18</span></div>
+</section>
+
+<!-- 19 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">8 — Use cases</p>
+  <h2>Five workloads, and what each one should buy</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <thead><tr><th>Use case</th><th>Family</th><th>Purchase model</th><th>Why cloud wins</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Web / application hosting</strong></td><td><code>m8g</code>, <code>c8g</code>, <code>t4g</code></td><td>Savings Plan for baseline, On-Demand for peak</td><td>Peak-to-trough ratio — owned hardware sized for Black Friday is idle 364 days</td></tr>
+        <tr><td><strong>Batch &amp; scientific computing</strong></td><td><code>c8g</code></td><td><strong>Spot</strong> — up to 90% off, with checkpointing</td><td>500 instances for 1 hour costs the same as 1 for 500 hours, and finishes today</td></tr>
+        <tr><td><strong>ML training &amp; inference</strong></td><td><code>p5</code> train, <code>g6</code> serve</td><td>Spot or reservations for training</td><td>The alternative is a $40,179/month machine you must keep busy</td></tr>
+        <tr><td><strong>Dev / test / CI</strong></td><td><code>t4g</code> burstable</td><td>On-Demand + scheduled shutdown; Spot for runners</td><td>Environment identical to production, costing nothing overnight</td></tr>
+        <tr><td><strong>Migration &amp; disaster recovery</strong></td><td>Match source, then right-size</td><td>On-Demand during migration, then commit</td><td>A DR site costing a few dollars a month while idle</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span class="src">Report §8 · p5.48xlarge = $55.04/hr = $40,179/month if left running</span><span>19</span></div>
+</section>
+
+<!-- 20 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">9 — Security</p>
+  <h2>Shared responsibility, and the four mistakes</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two">
+      <div class="stack">
+        <div class="card info"><h3>The division</h3><p style="margin:0">AWS secures <strong>the cloud</strong> — hardware, hypervisor, facilities. You secure what is <strong>in</strong> it: guest OS patching, firewall rules, identity, encryption, application code.</p></div>
+        <div class="card"><h3>Layers worth having</h3>
+          <p><strong>Identity</strong> — IAM roles, never static keys; MFA on root, then put root away.</p>
+          <p><strong>Network</strong> — security groups <em>and</em> route tables. In slide 9 the database is unreachable by <em>routing</em>, so a bad firewall edit does not expose it.</p>
+          <p><strong>Data</strong> — encrypt EBS, TLS at the load balancer, and restore a backup on purpose at least once.</p>
+          <p style="margin:0"><strong>Detection</strong> — CloudTrail names who launched it; a billing alarm is the highest-value alarm in a student account.</p></div>
+      </div>
+      <div class="stack">
+        <div class="card bad"><h3>The four that cost marks</h3>
+          <p><strong>1. SSH open to 0.0.0.0/0.</strong> Scanners find a new public SSH port in minutes. Scope to a <code>/32</code>.</p>
+          <p><strong>2. Mishandled private key.</strong> Downloaded once, <code>chmod 400</code>, never committed. No recovery.</p>
+          <p><strong>3. IMDSv1 left on.</strong> One SSRF bug reads live IAM credentials from <code>169.254.169.254</code>. <code>HttpTokens=required</code> closes it.</p>
+          <p style="margin:0"><strong>4. Stopped, not terminated.</strong> Stopped storage still bills.</p></div>
+        <div class="card good"><p style="margin:0">All four are one line each in <code>terraform/main.tf</code> — which is the practical argument for writing infrastructure down.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Report §9</span><span>20</span></div>
+</section>
+
+<!-- 21 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">10 — Comparison</p>
+  <h2>Same ideas, three vocabularies</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <thead><tr><th>Concept</th><th>AWS</th><th>Microsoft Azure</th><th>Google Cloud</th></tr></thead>
+      <tbody>
+        <tr><td>Virtual machine service</td><td>EC2</td><td>Virtual Machines</td><td>Compute Engine</td></tr>
+        <tr><td>Machine image</td><td>AMI</td><td>Managed Image / Gallery</td><td>Image</td></tr>
+        <tr><td>Private network</td><td>VPC</td><td>Virtual Network (VNet)</td><td>VPC network</td></tr>
+        <tr><td>Instance firewall</td><td>Security group</td><td>Network security group</td><td>VPC firewall rule</td></tr>
+        <tr><td>Failure domain in a region</td><td>Availability Zone</td><td>Availability Zone</td><td>Zone</td></tr>
+        <tr><td>Object storage / managed SQL</td><td>S3 / RDS</td><td>Blob Storage / Azure SQL</td><td>Cloud Storage / Cloud SQL</td></tr>
+        <tr><td>Committed discount / interruptible</td><td>Savings Plans / Spot</td><td>Reserved Instances / Spot VMs</td><td>Committed use / Spot VMs</td></tr>
+        <tr><td>In-house Arm processor</td><td>Graviton</td><td>Cobalt</td><td>Axion</td></tr>
+        <tr><td><strong>Q2 2026 market share</strong></td><td><strong>28%</strong></td><td><strong>20%</strong></td><td><strong>15%</strong></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1cqw">They differ in <em>emphasis</em>, not capability. <strong>AWS</strong>: broadest catalogue, deepest ecosystem. <strong>Azure</strong>: existing enterprise agreements, Active Directory, Windows licensing. <strong>Google</strong>: data and ML — and the fastest share gain, +3 points in six quarters.</p>
+  </div>
+  <div class="foot"><span class="src">Report Table 6</span><span>21</span></div>
+</section>
+
+<!-- 22 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">11 — Limitations</p>
+  <h2>What choosing the cloud costs you</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two">
+      <div class="stack">
+        <div class="card bad"><h3>Lock-in is not about VMs</h3><p style="margin:0">A Linux instance is portable. The lock-in accumulates in IAM, S3 semantics, Lambda, DynamoDB — everything that makes AWS worth using. A deliberate feature of the business model.</p></div>
+        <div class="card bad"><h3>Egress pricing shapes design</h3><p style="margin:0">Data in is free, data out is billed. Data gravity has a direction: move compute to the data, not data to the compute.</p></div>
+        <div class="card bad"><h3>Cost is elastic both ways</h3><p style="margin:0">The self-service that gives you a server in 90 seconds gives you a $40,000/month GPU cluster in 90 seconds.</p></div>
+      </div>
+      <div class="stack">
+        <div class="card bad"><h3>Concentration risk is systemic</h3><p style="margin:0">Three providers hold 67% of public cloud. A regional outage takes a visible fraction of the internet with it, and no single customer's architecture changes that.</p></div>
+        <div class="card bad"><h3>Sovereignty precedes architecture</h3><p style="margin:0">Region choice decides legal jurisdiction over the data. For regulated workloads that is a legal question asked before the technical one.</p></div>
+        <div class="card bad"><h3>Capacity is finite</h3><p style="margin:0">“Infinite capacity” is a simplification. <code>InsufficientInstanceCapacity</code> is a real error, especially for GPUs.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Report §11</span><span>22</span></div>
+</section>
+
+<!-- 23 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">12 — Conclusion</p>
+  <h2>Provisioning is easy. That is the problem.</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <p class="lede">Launching an EC2 instance takes about three minutes on the slowest of the three paths. Because it is that easy, the difficulty moves elsewhere.</p>
+    <div class="two">
+      <div class="stack">
+        <div class="card info"><p style="margin:0"><strong>The commercial model moves cost by up to 72%. The processor choice moves it by 11%.</strong> Make the cheap decisions first.</p></div>
+        <div class="card info"><p style="margin:0"><strong>Availability is a property of what surrounds the instance</strong>, not of the instance itself.</p></div>
+        <div class="card info"><p style="margin:0"><strong>The difference between the three provisioning paths is not speed</strong> — it is reviewability and reversibility.</p></div>
+      </div>
+      <div class="card good">
+        <h3>The version worth learning</h3>
+        <p>Not “launch an EC2 instance”, but:</p>
+        <ul style="margin:0">
+          <li>write the instance down as <strong>code</strong></li>
+          <li>scope its access to <strong>what it needs</strong></li>
+          <li>know what <strong>state</strong> it is in and what that state <strong>bills</strong></li>
+          <li><strong>destroy it</strong> when the demonstration is over</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:1.2cqw">Meanwhile the market underneath is growing <strong>43% a year</strong> and has doubled in eleven quarters. These same skills — provisioning, isolation, identity, cost discipline — sit underneath all of it.</p>
+  </div>
+  <div class="foot"><span class="src"></span><span>23</span></div>
+</section>
+
+<!-- 24 --------------------------------------------------------------- -->
+<section class="slide">
+  <p class="kicker">Sources</p>
+  <h2>Where every number came from</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <h3 style="font-size:1.5cqw">Market data</h3>
+        <p>Synergy Research Group quarterly cloud infrastructure press releases, May 2025 – July 2026 — read directly rather than via secondary reporting. Six quarters, six releases, cited individually in the report.</p>
+        <h3 style="font-size:1.5cqw">Prices</h3>
+        <p>The AWS On-Demand pricing feed that the public EC2 pricing page itself reads (us-east-1, Linux), retrieved 7 September 2026. Discount ceilings from aws.amazon.com/ec2/pricing and the Savings Plans page.</p>
+        <h3 style="font-size:1.5cqw">Definitions</h3>
+        <p>NIST SP 800-145; AWS EC2 User Guide; Terraform AWS provider documentation.</p>
+      </div>
+      <div class="stack">
+        <div class="card info"><h3>The project folder</h3>
+          <p><code>report.html</code> — the full report, print to PDF</p>
+          <p><code>slides.html</code> — this deck</p>
+          <p><code>data/figures.json</code> — every number, with source URL and retrieval date</p>
+          <p><code>terraform/</code> — the VM as code</p>
+          <p style="margin:0"><code>scripts/</code> — the CLI path and the bootstrap script</p></div>
+        <div class="card good"><p style="margin:0">One derived value in the whole deck: Q3 2025 market size ($106.5bn), computed from Synergy's stated Q4 figure minus the stated sequential increase. It is labelled derived everywhere it appears.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="src">Questions.</span><span>24</span></div>
+</section>
+
+</div>
+<div id="hint">← → or space to navigate · Home / End · press P for a printable handout</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var hint = document.getElementById('hint');
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+    location.hash = i ? '#' + (i + 1) : '';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'p' || e.key === 'P') { window.print(); }
+  });
+
+  // Tap right half to advance, left half to go back - works on a phone or a touch display.
+  document.getElementById('stage').addEventListener('click', function (e) {
+    show(e.clientX > window.innerWidth / 2 ? i + 1 : i - 1);
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  setTimeout(function () { hint.classList.add('hide'); }, 4000);
+})();
+</script>
+</body>
+</html>

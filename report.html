@@ -1,0 +1,1474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Computing on Amazon Web Services — Report</title>
+<style>
+  :root{
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+
+    /* chart chrome & ink (validated reference palette) */
+    --surface-1:#fcfcfb; --page:#f9f9f7;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+
+    /* categorical slots 1-3 (all-pairs validated, light mode) */
+    --series-1:#2a78d6;  /* AWS */
+    --series-2:#eb6834;  /* Microsoft Azure */
+    --series-3:#1baf7a;  /* Google Cloud */
+
+    /* status */
+    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+  }
+
+  *{box-sizing:border-box}
+  html{background:var(--page)}
+  body{
+    font:16px/1.65 var(--serif); color:var(--text-primary);
+    max-width:52rem; margin:0 auto; padding:3rem 1.5rem 6rem; background:var(--surface-1);
+  }
+
+  h1,h2,h3,h4{font-family:var(--sans); line-height:1.25; letter-spacing:-.01em}
+  h1{font-size:2rem; margin:0 0 .4rem}
+  h2{font-size:1.35rem; margin:3rem 0 .8rem; padding-top:.9rem; border-top:2px solid var(--text-primary)}
+  h3{font-size:1.05rem; margin:2rem 0 .5rem}
+  h4{font-size:.92rem; margin:1.4rem 0 .35rem; color:var(--text-secondary)}
+  p{margin:0 0 1rem}
+  ul,ol{margin:0 0 1rem; padding-left:1.4rem}
+  li{margin:.3rem 0}
+  a{color:#1c5cab}
+  code{font-family:var(--mono); font-size:.86em; background:#f0efec; padding:.1em .35em; border-radius:3px}
+  pre{
+    font-family:var(--mono); font-size:.8rem; line-height:1.5;
+    background:#f4f3ef; border:1px solid var(--border); border-left:3px solid var(--series-1);
+    border-radius:4px; padding:.85rem 1rem; overflow-x:auto; margin:0 0 1rem;
+  }
+  pre code{background:none; padding:0}
+
+  /* ---- title block ---------------------------------------------------- */
+  .cover{border-bottom:3px double var(--text-primary); padding-bottom:1.5rem; margin-bottom:2rem}
+  .cover .sub{font-family:var(--sans); color:var(--text-secondary); font-size:1rem; margin:.2rem 0 1.2rem}
+  .fields{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem 2rem;
+    font-family:var(--sans); font-size:.82rem; color:var(--text-secondary);
+  }
+  .fields b{display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600}
+  .fill{color:var(--muted); border-bottom:1px dotted var(--axis); display:inline-block; min-width:11rem}
+
+  /* ---- callouts ------------------------------------------------------- */
+  .note, .warn, .key{
+    font-family:var(--sans); font-size:.88rem; line-height:1.55;
+    border-radius:4px; padding:.75rem .95rem; margin:0 0 1.2rem;
+    border:1px solid var(--border); background:#f4f3ef;
+  }
+  .note{border-left:4px solid var(--series-1)}
+  .warn{border-left:4px solid var(--critical); background:#fdf3f3}
+  .key{border-left:4px solid var(--good); background:#f2f8f2}
+  .note b,.warn b,.key b{display:block; margin-bottom:.15rem}
+
+  /* ---- tables --------------------------------------------------------- */
+  table{border-collapse:collapse; width:100%; font-family:var(--sans); font-size:.82rem; margin:0 0 1.2rem}
+  caption{
+    caption-side:top; text-align:left; font-family:var(--sans); font-size:.78rem;
+    color:var(--text-secondary); padding-bottom:.4rem;
+  }
+  caption b{color:var(--text-primary)}
+  th,td{text-align:left; padding:.42rem .6rem; border-bottom:1px solid var(--grid); vertical-align:top}
+  thead th{border-bottom:1.5px solid var(--axis); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-secondary)}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:1px solid var(--axis)}
+
+  /* ---- figures -------------------------------------------------------- */
+  figure{margin:1.6rem 0 1.8rem; page-break-inside:avoid; break-inside:avoid}
+  figure svg{display:block; width:100%; height:auto; background:var(--surface-1);
+             border:1px solid var(--border); border-radius:4px}
+  figcaption{font-family:var(--sans); font-size:.78rem; color:var(--text-secondary); margin-top:.5rem; line-height:1.5}
+  figcaption b{color:var(--text-primary)}
+
+  /* SVG typography + primitives, shared by every chart and diagram */
+  svg text{font-family:var(--sans); fill:var(--text-primary)}
+  .t-title{font-size:13px; font-weight:600}
+  .t-axis{font-size:11px; fill:var(--muted)}
+  .t-lbl{font-size:11px; fill:var(--text-secondary)}
+  .t-val{font-size:11px; font-weight:600; font-variant-numeric:tabular-nums}
+  .t-sm{font-size:9.5px; fill:var(--text-secondary)}
+  .t-box{font-size:11px; font-weight:600}
+  .t-boxs{font-size:9px; fill:var(--text-secondary)}
+  .gridline{stroke:var(--grid); stroke-width:1}
+  .baseline{stroke:var(--axis); stroke-width:1}
+  .lineser{fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+  .node{fill:#fff; stroke:var(--axis); stroke-width:1.2; rx:5}
+  .zone{fill:none; stroke:var(--axis); stroke-width:1; stroke-dasharray:5 4; rx:7}
+  .flow{stroke:var(--text-secondary); stroke-width:1.4; fill:none}
+
+  /* ---- stat tiles ----------------------------------------------------- */
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:.8rem; margin:0 0 1.4rem}
+  .tile{border:1px solid var(--border); border-radius:5px; padding:.75rem .85rem; background:var(--surface-1)}
+  .tile .v{font-family:var(--sans); font-size:1.45rem; font-weight:650; letter-spacing:-.02em; line-height:1.1}
+  .tile .k{font-family:var(--sans); font-size:.72rem; color:var(--text-secondary); margin-top:.25rem; line-height:1.35}
+
+  /* ---- toc ------------------------------------------------------------ */
+  .toc{font-family:var(--sans); font-size:.86rem; columns:2; column-gap:2.5rem; margin:0 0 1rem}
+  .toc a{text-decoration:none; color:var(--text-primary)}
+  .toc li{margin:.22rem 0}
+
+  .refs{font-size:.86rem; line-height:1.55}
+  .refs li{margin:.55rem 0}
+  .refs .acc{color:var(--muted); font-size:.9em}
+
+  /* ---- print ---------------------------------------------------------- */
+  @page{size:A4; margin:16mm 14mm}
+  @media print{
+    html,body{background:#fff}
+    body{max-width:none; padding:0; font-size:10.5pt}
+    h2{page-break-before:always; break-before:page; padding-top:0}
+    h2#sec-1{page-break-before:avoid; break-before:avoid}
+    h2,h3,h4{page-break-after:avoid; break-after:avoid}
+    figure,table,pre,.note,.warn,.key,.tiles{page-break-inside:avoid; break-inside:avoid}
+    a{color:inherit; text-decoration:none}
+    .toc{columns:2}
+  }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <h1>Cloud Computing on Amazon Web Services</h1>
+  <p class="sub">Market position, service architecture, virtual machine provisioning and cost engineering — with a working reference implementation.</p>
+  <div class="fields">
+    <div><b>Student</b><span class="fill">&nbsp;</span></div>
+    <div><b>Student ID</b><span class="fill">&nbsp;</span></div>
+    <div><b>Course</b><span class="fill">&nbsp;</span></div>
+    <div><b>Instructor</b><span class="fill">&nbsp;</span></div>
+    <div><b>Institution</b><span class="fill">&nbsp;</span></div>
+    <div><b>Date submitted</b><span class="fill">&nbsp;</span></div>
+  </div>
+</header>
+
+<div class="note">
+  <b>How to read this report</b>
+  Every figure is drawn from the dataset in <code>data/figures.json</code>, which records the primary
+  source and retrieval date for each number. Market-share figures come from Synergy Research Group's
+  own quarterly releases; every price comes from the AWS pricing feed that the public EC2 pricing page
+  itself reads, retrieved 7&nbsp;September&nbsp;2026. Nothing here is estimated unless it is labelled
+  <em>derived</em>, and derived values show their arithmetic. The code referenced in section&nbsp;5
+  is in this project folder and runs.
+</div>
+
+<h3 style="margin-top:1.6rem">Contents</h3>
+<ol class="toc">
+  <li><a href="#sec-1">What cloud computing is</a></li>
+  <li><a href="#sec-2">The provider landscape, and why AWS</a></li>
+  <li><a href="#sec-3">AWS global infrastructure</a></li>
+  <li><a href="#sec-4">Anatomy of an EC2 virtual machine</a></li>
+  <li><a href="#sec-5">Setting up a virtual machine — three paths</a></li>
+  <li><a href="#sec-6">Reference architecture and data flow</a></li>
+  <li><a href="#sec-7">Pricing models and cost engineering</a></li>
+  <li><a href="#sec-8">Use cases, matched to instance families</a></li>
+  <li><a href="#sec-9">Security and the shared responsibility model</a></li>
+  <li><a href="#sec-10">Comparison: AWS, Azure and Google Cloud</a></li>
+  <li><a href="#sec-11">Limitations and risks</a></li>
+  <li><a href="#sec-12">Conclusion</a></li>
+  <li><a href="#refs">References</a></li>
+  <li><a href="#appendix">Appendix: figure data</a></li>
+</ol>
+
+<h3>Executive summary</h3>
+<p>
+Cloud computing replaced a capital purchase with an API call. The consequence is measurable: worldwide
+enterprise spending on cloud infrastructure services reached <strong>$143.4&nbsp;billion in a single
+quarter</strong> (Q2&nbsp;2026), growing 43% year on year — the eleventh successive quarter of
+<em>accelerating</em> growth and the fastest rate in eight years. Three providers take two thirds of it.
+Amazon Web Services holds 28% of that market, ahead of Microsoft Azure at 20% and Google Cloud at 15%,
+though both competitors are growing faster than AWS and Google has taken three points of share in a year.
+</p>
+<p>
+This report examines AWS as the representative provider. It explains how its global infrastructure is
+organised, dissects an EC2 virtual machine into its component parts, and then provisions one three
+different ways — web console, command line, and infrastructure as code — so the three approaches can be
+compared on the same task. It closes with the economics: on-demand list prices retrieved directly from
+AWS's pricing feed show that Arm-based Graviton4 instances undercut their Intel equivalents by roughly
+11% at identical vCPU and memory, and that AWS's own published commitment and spot discount ceilings
+(up to 72% and up to 90% respectively) dwarf any instance-type optimisation. The recurring theme is that
+the hard problems in cloud computing are not technical provisioning problems — provisioning is one API
+call — but problems of architecture, security posture and cost discipline.
+</p>
+
+<!-- ==================================================================== -->
+<h2 id="sec-1">1. What cloud computing is</h2>
+
+<p>
+The working definition remains the US National Institute of Standards and Technology's: cloud computing
+is a model for enabling ubiquitous, convenient, on-demand network access to a shared pool of configurable
+computing resources that can be rapidly provisioned and released with minimal management effort or service
+provider interaction. NIST names five essential characteristics, and a service is not a cloud service unless
+it has all five.
+</p>
+
+<table>
+  <caption><b>Table 1.</b> The five NIST essential characteristics, and what each one means when you are the one paying the bill.</caption>
+  <thead><tr><th style="width:11rem">Characteristic</th><th>What it means in practice</th></tr></thead>
+  <tbody>
+    <tr><td>On-demand self-service</td><td>You provision a server without a purchase order, a ticket, or a human on the other end. Section 5 does exactly this in about ninety seconds.</td></tr>
+    <tr><td>Broad network access</td><td>Resources are reached over standard network protocols from any client. The VM in section 5 is addressed over HTTP and SSH, nothing proprietary.</td></tr>
+    <tr><td>Resource pooling</td><td>Your VM is a slice of a much larger physical machine, multi-tenanted with other customers. This is why "instance type" is a contract about a slice, not about a box.</td></tr>
+    <tr><td>Rapid elasticity</td><td>Capacity scales out and back in on demand, ideally automatically. This is what makes the spot market in section 7 possible.</td></tr>
+    <tr><td>Measured service</td><td>Usage is metered and billed per unit consumed — per instance-second, per GB-month, per request. Metering is what converts an architecture decision into a line on an invoice.</td></tr>
+  </tbody>
+</table>
+
+<h3>1.1 Service models: who operates what</h3>
+<p>
+The three service models differ in exactly one thing: where the boundary of your responsibility sits.
+Figure&nbsp;1 draws that boundary rather than describing it, because the whole distinction is a boundary.
+</p>
+
+<figure>
+<svg viewBox="0 0 760 356" role="img" aria-label="Stacked responsibility diagram comparing on-premises, IaaS, PaaS and SaaS. Each column shows nine layers from networking up to application data, coloured to show whether the customer or the provider manages that layer.">
+  <text class="t-title" x="20" y="22">Figure 1 — Who manages which layer</text>
+  <text class="t-sm" x="20" y="38">Filled = the provider manages it. Outlined = you manage it. EC2, the subject of this report, is the IaaS column.</text>
+
+  <!-- column headers -->
+  <text class="t-lbl" x="200" y="62" text-anchor="middle" font-weight="600">On-premises</text>
+  <text class="t-lbl" x="336" y="62" text-anchor="middle" font-weight="600">IaaS (EC2)</text>
+  <text class="t-lbl" x="472" y="62" text-anchor="middle" font-weight="600">PaaS</text>
+  <text class="t-lbl" x="608" y="62" text-anchor="middle" font-weight="600">SaaS</text>
+
+  <!-- layer labels -->
+  <g class="t-lbl" text-anchor="end">
+    <text x="150" y="86">Application</text>
+    <text x="150" y="112">Data</text>
+    <text x="150" y="138">Runtime</text>
+    <text x="150" y="164">Middleware</text>
+    <text x="150" y="190">Operating system</text>
+    <text x="150" y="216">Virtualisation</text>
+    <text x="150" y="242">Servers</text>
+    <text x="150" y="268">Storage</text>
+    <text x="150" y="294">Networking</text>
+  </g>
+
+  <!-- On-premises: customer manages all 9 -->
+  <g fill="#fff" stroke="#2a78d6" stroke-width="1.3">
+    <rect x="152" y="74" width="96" height="22" rx="3"/><rect x="152" y="100" width="96" height="22" rx="3"/>
+    <rect x="152" y="126" width="96" height="22" rx="3"/><rect x="152" y="152" width="96" height="22" rx="3"/>
+    <rect x="152" y="178" width="96" height="22" rx="3"/><rect x="152" y="204" width="96" height="22" rx="3"/>
+    <rect x="152" y="230" width="96" height="22" rx="3"/><rect x="152" y="256" width="96" height="22" rx="3"/>
+    <rect x="152" y="282" width="96" height="22" rx="3"/>
+  </g>
+
+  <!-- IaaS: customer top 5, provider bottom 4 -->
+  <g fill="#fff" stroke="#2a78d6" stroke-width="1.3">
+    <rect x="288" y="74" width="96" height="22" rx="3"/><rect x="288" y="100" width="96" height="22" rx="3"/>
+    <rect x="288" y="126" width="96" height="22" rx="3"/><rect x="288" y="152" width="96" height="22" rx="3"/>
+    <rect x="288" y="178" width="96" height="22" rx="3"/>
+  </g>
+  <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+    <rect x="288" y="204" width="96" height="22" rx="3"/><rect x="288" y="230" width="96" height="22" rx="3"/>
+    <rect x="288" y="256" width="96" height="22" rx="3"/><rect x="288" y="282" width="96" height="22" rx="3"/>
+  </g>
+
+  <!-- PaaS: customer top 2, provider bottom 7 -->
+  <g fill="#fff" stroke="#2a78d6" stroke-width="1.3">
+    <rect x="424" y="74" width="96" height="22" rx="3"/><rect x="424" y="100" width="96" height="22" rx="3"/>
+  </g>
+  <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+    <rect x="424" y="126" width="96" height="22" rx="3"/><rect x="424" y="152" width="96" height="22" rx="3"/>
+    <rect x="424" y="178" width="96" height="22" rx="3"/><rect x="424" y="204" width="96" height="22" rx="3"/>
+    <rect x="424" y="230" width="96" height="22" rx="3"/><rect x="424" y="256" width="96" height="22" rx="3"/>
+    <rect x="424" y="282" width="96" height="22" rx="3"/>
+  </g>
+
+  <!-- SaaS: provider all 9 -->
+  <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+    <rect x="560" y="74" width="96" height="22" rx="3"/><rect x="560" y="100" width="96" height="22" rx="3"/>
+    <rect x="560" y="126" width="96" height="22" rx="3"/><rect x="560" y="152" width="96" height="22" rx="3"/>
+    <rect x="560" y="178" width="96" height="22" rx="3"/><rect x="560" y="204" width="96" height="22" rx="3"/>
+    <rect x="560" y="230" width="96" height="22" rx="3"/><rect x="560" y="256" width="96" height="22" rx="3"/>
+    <rect x="560" y="282" width="96" height="22" rx="3"/>
+  </g>
+
+  <!-- boundary annotation -->
+  <line x1="288" y1="201" x2="384" y2="201" stroke="#d03b3b" stroke-width="2"/>
+
+  <!-- legend -->
+  <g transform="translate(152,322)">
+    <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">Provider manages</text>
+    <rect x="150" y="-9" width="12" height="12" rx="2" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/><text class="t-lbl" x="168" y="1">You manage</text>
+    <line x1="285" y1="-3" x2="309" y2="-3" stroke="#d03b3b" stroke-width="2"/>
+    <text class="t-lbl" x="315" y="1" fill="#d03b3b">the EC2 boundary — you own the OS and everything above it</text>
+  </g>
+
+  <text class="t-sm" x="20" y="346">Examples — IaaS: Amazon EC2, Azure Virtual Machines, Google Compute Engine · PaaS: AWS Elastic Beanstalk, Azure App Service · SaaS: Microsoft 365, Salesforce.</text>
+</svg>
+<figcaption><b>Figure 1.</b> The service models are one continuous scale, not three unrelated products. Moving right buys convenience and sells control. This report sits in the IaaS column, where the customer still owns patching, configuration and process supervision — which is why sections 5 and 9 spend so much time on them.</figcaption>
+</figure>
+
+<h3>1.2 Deployment models</h3>
+<ul>
+  <li><strong>Public cloud</strong> — infrastructure owned by the provider, shared across unrelated tenants. The default, and the subject of this report.</li>
+  <li><strong>Private cloud</strong> — the same operating model on infrastructure dedicated to one organisation, whether self-hosted or hosted. Chosen for regulatory or latency reasons, rarely for cost.</li>
+  <li><strong>Hybrid cloud</strong> — public and private joined so that data and workloads can move between them. AWS Outposts, Azure Arc and Google Anthos exist to serve this.</li>
+  <li><strong>Multi-cloud</strong> — more than one public provider, deliberately. Buys negotiating leverage and reduces single-provider exposure; costs portability effort and cross-provider data transfer fees.</li>
+</ul>
+
+<!-- ==================================================================== -->
+<h2 id="sec-2">2. The provider landscape, and why AWS</h2>
+
+<p>
+The market has one clear leader and two fast challengers. Synergy Research Group measures worldwide
+enterprise spending on cloud infrastructure services each quarter and reports each provider's share of
+that total. Figure&nbsp;2 plots the last six quarters of that series; Figure&nbsp;3 plots the size of the
+market those percentages are taken from, because a shrinking share of a market growing 43% a year is not
+a decline.
+</p>
+
+<div class="tiles">
+  <div class="tile"><div class="v">$143.4B</div><div class="k">Worldwide cloud infrastructure spend, Q2 2026 — one quarter</div></div>
+  <div class="tile"><div class="v">43%</div><div class="k">Year-on-year growth, highest in eight years</div></div>
+  <div class="tile"><div class="v">$500B</div><div class="k">Trailing twelve-month market revenue</div></div>
+  <div class="tile"><div class="v">67%</div><div class="k">Public cloud held by AWS, Azure and Google combined</div></div>
+</div>
+
+<figure>
+<svg viewBox="0 0 760 422" role="img" aria-label="Line chart of worldwide cloud infrastructure market share from Q1 2025 to Q2 2026. AWS falls from 29 percent to 28 percent, Microsoft Azure moves between 20 and 22 percent, and Google Cloud rises steadily from 12 percent to 15 percent.">
+  <text class="t-title" x="20" y="22">Figure 2 — Worldwide cloud infrastructure market share, Q1 2025 – Q2 2026</text>
+  <text class="t-sm" x="20" y="38">Percent of total worldwide enterprise spending on cloud infrastructure services. Source: Synergy Research Group quarterly releases.</text>
+
+  <g transform="translate(0,22)">
+  <!-- gridlines + y axis -->
+  <g>
+    <line class="gridline" x1="70" y1="40"  x2="700" y2="40"/>
+    <line class="gridline" x1="70" y1="105" x2="700" y2="105"/>
+    <line class="gridline" x1="70" y1="170" x2="700" y2="170"/>
+    <line class="gridline" x1="70" y1="235" x2="700" y2="235"/>
+    <line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+  </g>
+  <g class="t-axis" text-anchor="end">
+    <text x="60" y="44">32%</text><text x="60" y="109">24%</text>
+    <text x="60" y="174">16%</text><text x="60" y="239">8%</text><text x="60" y="304">0%</text>
+  </g>
+
+  <!-- x labels -->
+  <g class="t-axis" text-anchor="middle">
+    <text x="70"  y="320">Q1 ’25</text><text x="196" y="320">Q2 ’25</text><text x="322" y="320">Q3 ’25</text>
+    <text x="448" y="320">Q4 ’25</text><text x="574" y="320">Q1 ’26</text><text x="700" y="320">Q2 ’26</text>
+  </g>
+
+  <!-- Google Cloud (slot 3) -->
+  <polyline class="lineser" stroke="#1baf7a" points="70,202.5 196,194.4 322,194.4 448,186.3 574,186.3 700,178.1"/>
+  <g fill="#1baf7a" stroke="#fcfcfb" stroke-width="2">
+    <circle cx="70" cy="202.5" r="4.5"/><circle cx="196" cy="194.4" r="4.5"/><circle cx="322" cy="194.4" r="4.5"/>
+    <circle cx="448" cy="186.3" r="4.5"/><circle cx="574" cy="186.3" r="4.5"/><circle cx="700" cy="178.1" r="4.5"/>
+  </g>
+  <text class="t-val" x="70" y="220" text-anchor="middle" fill="#0b0b0b">12</text>
+  <text class="t-val" x="700" y="168" text-anchor="middle" fill="#0b0b0b">15</text>
+  <text class="t-lbl" x="712" y="182" font-weight="600">Google</text>
+
+  <!-- Azure (slot 2) -->
+  <polyline class="lineser" stroke="#eb6834" points="70,121.3 196,137.5 322,137.5 448,129.4 574,129.4 700,137.5"/>
+  <g fill="#eb6834" stroke="#fcfcfb" stroke-width="2">
+    <circle cx="70" cy="121.3" r="4.5"/><circle cx="196" cy="137.5" r="4.5"/><circle cx="322" cy="137.5" r="4.5"/>
+    <circle cx="448" cy="129.4" r="4.5"/><circle cx="574" cy="129.4" r="4.5"/><circle cx="700" cy="137.5" r="4.5"/>
+  </g>
+  <text class="t-val" x="70" y="112" text-anchor="middle" fill="#0b0b0b">22</text>
+  <text class="t-val" x="700" y="128" text-anchor="middle" fill="#0b0b0b">20</text>
+  <text class="t-lbl" x="712" y="141" font-weight="600">Azure</text>
+
+  <!-- AWS (slot 1) -->
+  <polyline class="lineser" stroke="#2a78d6" points="70,64.4 196,56.3 322,64.4 448,72.5 574,72.5 700,72.5"/>
+  <g fill="#2a78d6" stroke="#fcfcfb" stroke-width="2">
+    <circle cx="70" cy="64.4" r="4.5"/><circle cx="196" cy="56.3" r="4.5"/><circle cx="322" cy="64.4" r="4.5"/>
+    <circle cx="448" cy="72.5" r="4.5"/><circle cx="574" cy="72.5" r="4.5"/><circle cx="700" cy="72.5" r="4.5"/>
+  </g>
+  <text class="t-val" x="70" y="55" text-anchor="middle" fill="#0b0b0b">29</text>
+  <text class="t-val" x="196" y="47" text-anchor="middle" fill="#0b0b0b">30</text>
+  <text class="t-val" x="700" y="63" text-anchor="middle" fill="#0b0b0b">28</text>
+  <text class="t-lbl" x="712" y="76" font-weight="600">AWS</text>
+
+  <!-- legend -->
+  <g transform="translate(70,352)">
+    <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">AWS</text>
+    <rect x="80" y="-9" width="12" height="12" rx="2" fill="#eb6834"/><text class="t-lbl" x="98" y="1">Microsoft Azure</text>
+    <rect x="215" y="-9" width="12" height="12" rx="2" fill="#1baf7a"/><text class="t-lbl" x="233" y="1">Google Cloud</text>
+  </g>
+  <text class="t-sm" x="70" y="378">First and last values are labelled; the full six-quarter table is in the Appendix.</text>
+  </g>
+</svg>
+<figcaption><b>Figure 2.</b> AWS's share slid two points over six quarters while Google Cloud gained three. The lines are not a scoreboard of health — see Figure 3 for what they are shares <em>of</em>.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 760 402" role="img" aria-label="Bar chart of quarterly worldwide cloud infrastructure spending, rising from 94 billion dollars in Q1 2025 to 143.4 billion dollars in Q2 2026.">
+  <text class="t-title" x="20" y="22">Figure 3 — Quarterly worldwide cloud infrastructure spending (US$ billions)</text>
+  <text class="t-sm" x="20" y="38">The market AWS's 28% is a share of. Source: Synergy Research Group. Q3 ’25 is derived — see note below.</text>
+
+  <g transform="translate(0,22)">
+  <g>
+    <line class="gridline" x1="70" y1="40"  x2="700" y2="40"/>
+    <line class="gridline" x1="70" y1="127" x2="700" y2="127"/>
+    <line class="gridline" x1="70" y1="213" x2="700" y2="213"/>
+    <line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+  </g>
+  <g class="t-axis" text-anchor="end">
+    <text x="60" y="44">150</text><text x="60" y="131">100</text><text x="60" y="217">50</text><text x="60" y="304">0</text>
+  </g>
+
+  <!-- bars: 2px surface gap achieved by 43px inter-bar spacing -->
+  <g fill="#2a78d6">
+    <rect x="91.5"  y="137.1" width="62" height="162.9" rx="4"/>
+    <rect x="196.5" y="128.4" width="62" height="171.6" rx="4"/>
+    <rect x="301.5" y="115.4" width="62" height="184.6" rx="4"/>
+    <rect x="406.5" y="93.6"  width="62" height="206.4" rx="4"/>
+    <rect x="511.5" y="76.4"  width="62" height="223.6" rx="4"/>
+    <rect x="616.5" y="51.5"  width="62" height="248.5" rx="4"/>
+  </g>
+  <!-- square off the bottom of the rounded rects so they sit on the baseline -->
+  <g fill="#2a78d6">
+    <rect x="91.5" y="292" width="62" height="8"/><rect x="196.5" y="292" width="62" height="8"/>
+    <rect x="301.5" y="292" width="62" height="8"/><rect x="406.5" y="292" width="62" height="8"/>
+    <rect x="511.5" y="292" width="62" height="8"/><rect x="616.5" y="292" width="62" height="8"/>
+  </g>
+
+  <g class="t-val" text-anchor="middle">
+    <text x="122.5" y="129">94.0</text><text x="227.5" y="120">99.0</text><text x="332.5" y="107">106.5</text>
+    <text x="437.5" y="86">119.1</text><text x="542.5" y="68">129.0</text><text x="647.5" y="43">143.4</text>
+  </g>
+  <g class="t-axis" text-anchor="middle">
+    <text x="122.5" y="320">Q1 ’25</text><text x="227.5" y="320">Q2 ’25</text><text x="332.5" y="320">Q3 ’25</text>
+    <text x="437.5" y="320">Q4 ’25</text><text x="542.5" y="320">Q1 ’26</text><text x="647.5" y="320">Q2 ’26</text>
+  </g>
+
+  <text class="t-sm" x="70" y="348">The market grew 52.6% across these six quarters (derived: 143.4 ÷ 94.0). Synergy attributes the acceleration primarily to generative AI,</text>
+  <text class="t-sm" x="70" y="362">reporting GenAI-specific cloud services growing 165% year on year in Q2 ’26. Q3 ’25 is derived: $119.1bn less the “almost $12 billion”</text>
+  <text class="t-sm" x="70" y="376">sequential increase Synergy reported for Q4 ’25; every other value is stated directly in a Synergy release.</text>
+  </g>
+</svg>
+<figcaption><b>Figure 3.</b> A single series needs no legend — the title names it. AWS lost two points of share across a market that grew by half, so its absolute revenue grew substantially over the same period.</figcaption>
+</figure>
+
+<h3>2.1 Why this report examines AWS</h3>
+<ol>
+  <li><strong>It is the largest, so it is the most consequential to understand.</strong> At 28% of a $143bn quarter, more workloads run here than anywhere else.</li>
+  <li><strong>It is the oldest.</strong> EC2 launched in 2006. Its abstractions — instance, AMI, security group, availability zone — were copied by its competitors, so learning them transfers to Azure and Google Cloud almost directly (see Table 6).</li>
+  <li><strong>Its pricing is public and machine-readable.</strong> Every price in section 7 was retrieved from the same feed the AWS pricing page reads, which means the cost analysis here can be verified rather than believed.</li>
+</ol>
+<p>
+The choice is not an endorsement. Section 10 compares the three head to head, and section 11 sets out
+what choosing AWS costs you.
+</p>
+
+<!-- ==================================================================== -->
+<h2 id="sec-3">3. AWS global infrastructure</h2>
+
+<p>
+Three nested concepts carry almost all the availability design in AWS, and they are the first thing to get
+right because every later decision inherits from them.
+</p>
+<ul>
+  <li><strong>Region</strong> — a separate geographic area (<code>us-east-1</code>, <code>eu-west-1</code>, <code>me-south-1</code>) with its own pricing, its own service catalogue and its own failure domain. Regions are isolated from one another <em>by design</em>: data does not move between them unless you move it.</li>
+  <li><strong>Availability Zone (AZ)</strong> — one or more discrete data centres inside a region, with independent power, cooling and networking, connected to sibling AZs by low-latency private links. An AZ is the unit of blast radius.</li>
+  <li><strong>Edge location</strong> — a point of presence for CloudFront and Route 53, far more numerous than regions, holding cached content close to users.</li>
+</ul>
+
+<div class="key">
+  <b>The single most important architectural rule in this report</b>
+  A workload confined to one Availability Zone has the availability of one data centre. Spreading the same
+  workload across two AZs in one region costs nothing extra in instance price and removes an entire class
+  of outage. Figure 4 and Figure 7 both draw two AZs for this reason.
+</div>
+
+<figure>
+<svg viewBox="0 0 760 470" role="img" aria-label="Block diagram of AWS infrastructure: an AWS region containing a VPC with two availability zones, each holding a public subnet with an EC2 instance and a private subnet with a database, plus an internet gateway.">
+  <text class="t-title" x="20" y="22">Figure 4 — Block diagram: region, availability zones, VPC and subnets</text>
+  <text class="t-sm" x="20" y="38">Containment, not traffic. Each box is physically or logically inside the one that encloses it.</text>
+
+  <!-- Region -->
+  <rect x="20" y="52" width="720" height="400" rx="9" fill="#f4f8fd" stroke="#2a78d6" stroke-width="1.6"/>
+  <text class="t-box" x="34" y="72" fill="#1c5cab">AWS Region — us-east-1 (N. Virginia)</text>
+  <text class="t-boxs" x="34" y="86">Own pricing, own service catalogue, own failure domain. Data stays here unless you move it.</text>
+
+  <!-- Internet gateway sitting on the VPC edge -->
+  <rect class="node" x="300" y="98" width="160" height="30"/>
+  <text class="t-box" x="380" y="117" text-anchor="middle">Internet Gateway</text>
+  <line class="flow" x1="380" y1="128" x2="380" y2="146"/>
+
+  <!-- VPC -->
+  <rect x="40" y="146" width="680" height="288" rx="8" fill="#fcfcfb" stroke="#52514e" stroke-width="1.3"/>
+  <text class="t-box" x="54" y="166">VPC — 10.0.0.0/16</text>
+  <text class="t-boxs" x="54" y="179">Your private, software-defined network. Spans every AZ in the region.</text>
+
+  <!-- AZ A -->
+  <rect class="zone" x="56" y="190" width="320" height="228"/>
+  <text class="t-box" x="70" y="209">Availability Zone us-east-1a</text>
+  <rect x="70" y="219" width="292" height="86" rx="6" fill="#eef6ee" stroke="#1baf7a" stroke-width="1.2"/>
+  <text class="t-boxs" x="82" y="235" font-weight="600">Public subnet 10.0.1.0/24 — route to IGW</text>
+  <rect class="node" x="82" y="243" width="128" height="50"/>
+  <text class="t-box" x="146" y="262" text-anchor="middle">EC2 web-01</text>
+  <text class="t-boxs" x="146" y="277" text-anchor="middle">t4g.micro · public IP</text>
+  <rect class="node" x="222" y="243" width="128" height="50"/>
+  <text class="t-box" x="286" y="262" text-anchor="middle">NAT Gateway</text>
+  <text class="t-boxs" x="286" y="277" text-anchor="middle">outbound only</text>
+
+  <rect x="70" y="317" width="292" height="86" rx="6" fill="#faf4f2" stroke="#eb6834" stroke-width="1.2"/>
+  <text class="t-boxs" x="82" y="333" font-weight="600">Private subnet 10.0.11.0/24 — no route to IGW</text>
+  <rect class="node" x="82" y="341" width="268" height="50"/>
+  <text class="t-box" x="216" y="360" text-anchor="middle">RDS primary (MySQL)</text>
+  <text class="t-boxs" x="216" y="375" text-anchor="middle">unreachable from the internet, by routing not by firewall</text>
+
+  <!-- AZ B -->
+  <rect class="zone" x="392" y="190" width="312" height="228"/>
+  <text class="t-box" x="406" y="209">Availability Zone us-east-1b</text>
+  <rect x="406" y="219" width="284" height="86" rx="6" fill="#eef6ee" stroke="#1baf7a" stroke-width="1.2"/>
+  <text class="t-boxs" x="418" y="235" font-weight="600">Public subnet 10.0.2.0/24</text>
+  <rect class="node" x="418" y="243" width="128" height="50"/>
+  <text class="t-box" x="482" y="262" text-anchor="middle">EC2 web-02</text>
+  <text class="t-boxs" x="482" y="277" text-anchor="middle">t4g.micro · public IP</text>
+
+  <rect x="406" y="317" width="284" height="86" rx="6" fill="#faf4f2" stroke="#eb6834" stroke-width="1.2"/>
+  <text class="t-boxs" x="418" y="333" font-weight="600">Private subnet 10.0.12.0/24</text>
+  <rect class="node" x="418" y="341" width="260" height="50"/>
+  <text class="t-box" x="548" y="360" text-anchor="middle">RDS standby</text>
+  <text class="t-boxs" x="548" y="375" text-anchor="middle">synchronous replica · automatic failover</text>
+
+  <!-- inter-AZ link -->
+  <line class="flow" x1="362" y1="366" x2="418" y2="366" stroke-dasharray="4 3"/>
+  <text class="t-boxs" x="390" y="358" text-anchor="middle">replication</text>
+
+  <text class="t-sm" x="20" y="464">A subnet lives in exactly one AZ; a VPC spans them all. That single asymmetry is what makes multi-AZ design a subnet decision.</text>
+</svg>
+<figcaption><b>Figure 4.</b> The nesting is strict: region contains VPC contains subnet contains instance, and a subnet never straddles two AZs. Note that the private subnet is private because of its <em>route table</em>, not its security group — the two mechanisms are independent and section 9 explains why you want both.</figcaption>
+</figure>
+
+<!-- ==================================================================== -->
+<h2 id="sec-4">4. Anatomy of an EC2 virtual machine</h2>
+
+<p>
+"Launch an instance" is a request assembled from seven or eight independent choices. Almost every mistake
+in this exercise is one of those choices made carelessly, so it is worth taking the instance apart before
+building one.
+</p>
+
+<figure>
+<svg viewBox="0 0 760 430" role="img" aria-label="Component diagram of an EC2 instance showing the AMI, instance type, EBS root volume, elastic network interface, security group, key pair, IAM instance profile and user data attached to a central instance box.">
+  <text class="t-title" x="20" y="22">Figure 5 — The components of one EC2 instance</text>
+  <text class="t-sm" x="20" y="38">Each surrounding box is a separate decision made at launch time. Three of them cannot be changed afterwards.</text>
+
+  <!-- centre -->
+  <rect x="290" y="180" width="180" height="76" rx="8" fill="#2a78d6"/>
+  <text x="380" y="208" text-anchor="middle" fill="#fff" class="t-box" font-size="13">EC2 instance</text>
+  <text x="380" y="226" text-anchor="middle" fill="#dbe9fa" class="t-boxs">i-0a1b2c3d4e5f</text>
+  <text x="380" y="242" text-anchor="middle" fill="#dbe9fa" class="t-boxs">a virtual machine on shared hardware</text>
+
+  <!-- top row -->
+  <rect class="node" x="40" y="66" width="200" height="62"/>
+  <text class="t-box" x="52" y="86">AMI — machine image</text>
+  <text class="t-boxs" x="52" y="101">The disk template: OS, packages, config.</text>
+  <text class="t-boxs" x="52" y="114">Region-specific. Look it up, never paste an id.</text>
+  <text class="t-boxs" x="52" y="124" fill="#d03b3b">Fixed at launch.</text>
+
+  <rect class="node" x="280" y="66" width="200" height="62"/>
+  <text class="t-box" x="292" y="86">Instance type — m8g.large</text>
+  <text class="t-boxs" x="292" y="101">family · generation · processor · size.</text>
+  <text class="t-boxs" x="292" y="114">Decides vCPU, memory, network, and price.</text>
+  <text class="t-boxs" x="292" y="124">Changeable, but only while stopped.</text>
+
+  <rect class="node" x="520" y="66" width="200" height="62"/>
+  <text class="t-box" x="532" y="86">User data — bootstrap</text>
+  <text class="t-boxs" x="532" y="101">A script run as root on first boot.</text>
+  <text class="t-boxs" x="532" y="114">See scripts/user-data.sh in this project.</text>
+  <text class="t-boxs" x="532" y="124">Never put a secret in it.</text>
+
+  <!-- middle sides -->
+  <rect class="node" x="40" y="176" width="200" height="62"/>
+  <text class="t-box" x="52" y="196">EBS root volume — gp3</text>
+  <text class="t-boxs" x="52" y="211">Network-attached disk with its own lifetime.</text>
+  <text class="t-boxs" x="52" y="224">Bills whether the instance runs or is stopped.</text>
+
+  <rect class="node" x="520" y="176" width="200" height="62"/>
+  <text class="t-box" x="532" y="196">ENI — network interface</text>
+  <text class="t-boxs" x="532" y="211">Private IP (stable) + public IP (changes on</text>
+  <text class="t-boxs" x="532" y="224">stop/start unless you attach an Elastic IP).</text>
+
+  <!-- bottom row -->
+  <rect class="node" x="40" y="286" width="200" height="62"/>
+  <text class="t-box" x="52" y="306">Security group — firewall</text>
+  <text class="t-boxs" x="52" y="321">Stateful, allow-only, attached to the ENI.</text>
+  <text class="t-boxs" x="52" y="334">There is no “deny” rule; absence is denial.</text>
+
+  <rect class="node" x="280" y="286" width="200" height="62"/>
+  <text class="t-box" x="292" y="306">Key pair — SSH login</text>
+  <text class="t-boxs" x="292" y="321">AWS holds the public half only.</text>
+  <text class="t-boxs" x="292" y="334" fill="#d03b3b">Lose the private half and you rebuild.</text>
+
+  <rect class="node" x="520" y="286" width="200" height="62"/>
+  <text class="t-box" x="532" y="306">IAM instance profile</text>
+  <text class="t-boxs" x="532" y="321">Temporary credentials delivered by IMDS,</text>
+  <text class="t-boxs" x="532" y="334">so the app never stores a static key.</text>
+
+  <!-- connectors -->
+  <g class="flow">
+    <path d="M240 97 H265 V190 H290"/>
+    <path d="M380 128 V180"/>
+    <path d="M520 97 H495 V190 H470"/>
+    <path d="M240 207 H290"/>
+    <path d="M520 207 H470"/>
+    <path d="M240 317 H265 V246 H290"/>
+    <path d="M380 286 V256"/>
+    <path d="M520 317 H495 V246 H470"/>
+  </g>
+
+  <text class="t-sm" x="20" y="380">Three of these are fixed for the life of the instance: the AMI, the placement (subnet and therefore AZ), and the key pair name.</text>
+  <text class="t-sm" x="20" y="396">Everything else can be changed later — the instance type while stopped, the security group and IAM profile while running.</text>
+  <text class="t-sm" x="20" y="412">Knowing which is which is the difference between “edit the instance” and “rebuild the instance”, and it is a common exam question.</text>
+</svg>
+<figcaption><b>Figure 5.</b> Take the instance apart and “how do I set up a VM” becomes eight small, checkable decisions. The three fixed-at-launch choices are the ones worth slowing down for.</figcaption>
+</figure>
+
+<h3>4.1 Reading an instance type name</h3>
+<p>
+<code>m8g.large</code> is not arbitrary. Reading it left to right: <strong>m</strong> is the family
+(general purpose), <strong>8</strong> is the generation, <strong>g</strong> is the processor
+(AWS Graviton; <code>i</code> would be Intel, <code>a</code> AMD), and <strong>large</strong> is the size.
+Sizes double as you go up — <code>large</code> is 2 vCPU, <code>xlarge</code> is 4, <code>2xlarge</code>
+is 8 — and, as the price table in section 7 shows, the price doubles with them almost exactly linearly.
+That linearity is the reason "scale up" and "scale out" cost roughly the same on paper, and why the
+choice between them is an availability decision rather than a cost one.
+</p>
+
+<table>
+  <caption><b>Table 2.</b> The instance families, what each optimises for, and a representative on-demand price. Prices are us-east-1, Linux, retrieved 7 Sept 2026 — see the full table in section 7.</caption>
+  <thead><tr><th>Family</th><th>Letter</th><th>Optimised for</th><th>Example</th><th class="num">$/hour</th></tr></thead>
+  <tbody>
+    <tr><td>General purpose</td><td><code>m</code>, <code>t</code></td><td>Balanced CPU-to-memory. The default when you do not yet know the profile.</td><td><code>m8g.large</code></td><td class="num">0.0898</td></tr>
+    <tr><td>Burstable</td><td><code>t</code></td><td>Low baseline CPU with credit-funded bursts. Cheapest way to run something small and idle.</td><td><code>t4g.micro</code></td><td class="num">0.0084</td></tr>
+    <tr><td>Compute optimised</td><td><code>c</code></td><td>High clock per unit of memory — encoding, build farms, game servers, API tiers.</td><td><code>c8g.large</code></td><td class="num">0.0798</td></tr>
+    <tr><td>Memory optimised</td><td><code>r</code>, <code>x</code></td><td>Large in-memory datasets — databases, caches, analytics.</td><td><code>r8g.large</code></td><td class="num">0.1178</td></tr>
+    <tr><td>Storage optimised</td><td><code>i</code>, <code>d</code></td><td>Locally attached NVMe for very high random IOPS.</td><td><code>i4i.large</code></td><td class="num">0.1720</td></tr>
+    <tr><td>Accelerated computing</td><td><code>g</code>, <code>p</code></td><td>GPUs for training, inference, rendering.</td><td><code>p5.48xlarge</code></td><td class="num">55.0400</td></tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <b>Scale check</b>
+  <code>p5.48xlarge</code> at $55.04 per hour is <strong>$40,179 per month</strong> if left running
+  (derived: 55.04 × 730). That is 6,552 times the cost of the <code>t4g.micro</code> used in section 5.
+  The gap between the two ends of Table 2 is the entire argument for cost governance in section 7.
+</div>
+
+<!-- ==================================================================== -->
+<h2 id="sec-5">5. Setting up a virtual machine — three paths</h2>
+
+<p>
+The same instance is built three ways below: through the web console, through the AWS CLI, and as
+infrastructure code. They produce identical infrastructure, so the differences between them are purely
+differences of method — and those differences are the point of the exercise.
+</p>
+
+<p><strong>Target build, held constant across all three paths:</strong></p>
+<table>
+  <caption><b>Table 3.</b> The specification built by all three paths.</caption>
+  <thead><tr><th style="width:12rem">Decision</th><th>Value</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Region</td><td><code>us-east-1</code></td><td>Lowest prices for most types; the region every price in this report is quoted from.</td></tr>
+    <tr><td>AMI</td><td>Amazon Linux 2023, arm64</td><td>Looked up at run time from SSM, never pasted. Arm64 because the instance is Graviton.</td></tr>
+    <tr><td>Instance type</td><td><code>t4g.micro</code></td><td>$0.0084/hr — about $6.13/month. Cheapest type that runs a real web server.</td></tr>
+    <tr><td>Root volume</td><td>20 GiB gp3, encrypted, delete on termination</td><td>gp3 is cheaper and faster than gp2 at the same size; deletion on terminate prevents orphaned billed volumes.</td></tr>
+    <tr><td>Security group</td><td>TCP 22 from your IP/32; TCP 80 from 0.0.0.0/0</td><td>The web server is public by intent; the admin channel is not.</td></tr>
+    <tr><td>Key pair</td><td>ed25519, private half local only</td><td>AWS stores the public half. The private half never leaves your machine.</td></tr>
+    <tr><td>Metadata service</td><td>IMDSv2 required</td><td>Closes the SSRF-to-credential-theft path described in section 9.</td></tr>
+    <tr><td>Bootstrap</td><td><code>scripts/user-data.sh</code></td><td>Installs and starts nginx, and serves a page proving which instance answered.</td></tr>
+  </tbody>
+</table>
+
+<h3>5.1 Path 1 — the AWS Management Console</h3>
+<p>
+The console is the right first path because it names every decision out loud. It is the wrong tenth path,
+because nothing you clicked is written down anywhere.
+</p>
+<ol>
+  <li><strong>Pick the region first</strong>, top-right of the console. Every subsequent screen is scoped to it, and an instance launched in the wrong region is invisible from the right one — the most common "where did my server go" incident.</li>
+  <li><strong>EC2 → Instances → Launch an instance.</strong></li>
+  <li><strong>Name and tags.</strong> Set <code>Name = cloud-project-web</code>. Tags are how you find, group and bill things later; an untagged estate becomes unbillable within about a month.</li>
+  <li><strong>Application and OS image (AMI).</strong> Choose Amazon Linux 2023, then switch the architecture selector to <strong>64-bit (Arm)</strong>. This must match the processor in the instance type chosen next — an x86 AMI will simply not appear as launchable on a Graviton type.</li>
+  <li><strong>Instance type.</strong> Choose <code>t4g.micro</code>. The screen shows vCPU, memory and the on-demand price per hour; compare it against Table 2.</li>
+  <li><strong>Key pair.</strong> Create a new key pair, type <em>ed25519</em>, format <em>.pem</em>. The browser downloads the private key <strong>once</strong>. There is no second chance and no recovery: lose it and the only route back in is to rebuild the instance.</li>
+  <li><strong>Network settings → Edit.</strong> This is where marks are lost.
+    <ul>
+      <li>VPC: the default VPC is fine for this exercise.</li>
+      <li>Subnet: pick a specific one, and note which AZ it is in — this is where the instance physically lives.</li>
+      <li>Auto-assign public IP: <em>Enable</em>. Without it the instance has no route in from the internet.</li>
+      <li>Firewall (security group): create one with two rules — SSH (22) with source <strong>My IP</strong>, and HTTP (80) with source <em>Anywhere</em>. The console offers "Anywhere" for SSH as a one-click option. Do not take it.</li>
+    </ul>
+  </li>
+  <li><strong>Configure storage.</strong> 20 GiB, <code>gp3</code>. Expand Advanced and tick <em>Encrypted</em>.</li>
+  <li><strong>Advanced details.</strong> Set <em>Metadata version</em> to <strong>V2 only (token required)</strong>. Paste the contents of <code>scripts/user-data.sh</code> into the <em>User data</em> box at the bottom.</li>
+  <li><strong>Launch instance</strong>, then watch the Instances list: the state goes <em>pending</em> → <em>running</em> and the two status checks go from initialising to 2/2 passed. The instance is reachable at 2/2, not at <em>running</em>.</li>
+</ol>
+
+<h3>5.2 Path 2 — the AWS CLI</h3>
+<p>
+The full runnable script is <code>scripts/create-ec2-cli.sh</code> in this project, including the
+tear-down path. The launch call itself is the heart of it:
+</p>
+<pre><code>aws ec2 run-instances \
+  --region us-east-1 \
+  --image-id "$AMI_ID" \
+  --instance-type t4g.micro \
+  --key-name cloud-project-cli-key \
+  --security-group-ids "$SG_ID" \
+  --user-data file://scripts/user-data.sh \
+  --metadata-options "HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=1" \
+  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{
+        "VolumeSize":20,"VolumeType":"gp3","Encrypted":true,"DeleteOnTermination":true}}]' \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=cloud-project-cli}]"</code></pre>
+<p>
+Two details in that script are worth more than the launch call. The AMI is resolved at run time from
+AWS Systems Manager rather than hard-coded:
+</p>
+<pre><code>AMI_ID=$(aws ssm get-parameters --region us-east-1 \
+  --names /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64 \
+  --query 'Parameters[0].Value' --output text)</code></pre>
+<p>
+and the security group is scoped to the machine running the script, computed rather than typed:
+</p>
+<pre><code>MY_IP="$(curl -s https://checkip.amazonaws.com)/32"
+aws ec2 authorize-security-group-ingress --group-id "$SG_ID" \
+  --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=$MY_IP}]"</code></pre>
+
+<div class="warn">
+  <b>What the CLI path exposes</b>
+  Run <code>create-ec2-cli.sh</code> twice and you get two instances, two security groups and two bills.
+  The script creates resources but does not <em>track</em> them: there is no record of what it made, so
+  there is no reliable way to change or remove it later except by searching for tags. That gap is the
+  entire argument for path 3.
+</div>
+
+<h3>5.3 Path 3 — infrastructure as code (Terraform)</h3>
+<p>
+The full configuration is <code>terraform/main.tf</code>, with inputs in <code>variables.tf</code> and
+results in <code>outputs.tf</code>. The core resource:
+</p>
+<pre><code>resource "aws_instance" "vm" {
+  ami                         = data.aws_ami.al2023_arm.id
+  instance_type               = var.instance_type
+  subnet_id                   = data.aws_subnets.default.ids[0]
+  vpc_security_group_ids      = [aws_security_group.web.id]
+  key_name                    = aws_key_pair.this.key_name
+  associate_public_ip_address = true
+  user_data                   = file("${path.module}/../scripts/user-data.sh")
+
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    encrypted             = true
+    delete_on_termination = true
+  }
+
+  metadata_options {
+    http_tokens = "required"     # IMDSv2 required
+  }
+
+  tags = { Name = var.name, Project = "cloud-computing-report" }
+}</code></pre>
+<p>Run it:</p>
+<pre><code>ssh-keygen -t ed25519 -f ~/.ssh/cloud-project -C cloud-project
+chmod 400 ~/.ssh/cloud-project
+
+cd terraform
+terraform init
+terraform plan  -var="my_ip_cidr=$(curl -s https://checkip.amazonaws.com)/32"
+terraform apply -var="my_ip_cidr=$(curl -s https://checkip.amazonaws.com)/32"
+# ... demonstrate ...
+terraform destroy -var="my_ip_cidr=$(curl -s https://checkip.amazonaws.com)/32"</code></pre>
+<p>
+Three properties fall out of this that neither of the other paths has. <code>terraform plan</code> shows
+what will change <em>before</em> anything changes. The state file makes the infrastructure diffable and
+reviewable like source code. And <code>terraform destroy</code> removes exactly what was created — which
+in a student account is the difference between a $6 exercise and a $60 one.
+</p>
+<p>
+The configuration also refuses to be misused: <code>variables.tf</code> carries a validation block that
+rejects <code>my_ip_cidr = "0.0.0.0/0"</code> outright, so the most common security mistake in this
+assignment fails at plan time rather than silently succeeding.
+</p>
+
+<table>
+  <caption><b>Table 4.</b> The same job, three ways.</caption>
+  <thead><tr><th>Criterion</th><th>Console</th><th>CLI</th><th>Terraform</th></tr></thead>
+  <tbody>
+    <tr><td>Time to first instance</td><td>~3 minutes</td><td>~90 seconds</td><td>~2 minutes (after <code>init</code>)</td></tr>
+    <tr><td>Repeatable identically</td><td>No</td><td>Yes, but duplicates on re-run</td><td>Yes — re-run converges, does not duplicate</td></tr>
+    <tr><td>Reviewable before applying</td><td>No</td><td>No</td><td>Yes — <code>terraform plan</code></td></tr>
+    <tr><td>Clean removal</td><td>Manual, easy to orphan resources</td><td>Scripted, tag-based</td><td><code>terraform destroy</code></td></tr>
+    <tr><td>Best used for</td><td>Learning; one-off inspection</td><td>Automation inside other scripts; CI steps</td><td>Anything that must exist tomorrow</td></tr>
+  </tbody>
+</table>
+
+<h3>5.4 Connecting and verifying</h3>
+<pre><code>chmod 400 ~/.ssh/cloud-project          # ssh refuses a world-readable key
+ssh -i ~/.ssh/cloud-project ec2-user@&lt;public-ip&gt;
+
+# on the instance — confirm the bootstrap actually ran
+sudo systemctl status nginx
+sudo cat /var/log/cloud-init-output.log  # where user-data failures show up
+
+# confirm IMDSv2 is enforced: the v1 style call must fail
+curl -s http://169.254.169.254/latest/meta-data/instance-id     # -> 401 Unauthorized
+TOKEN=$(curl -sX PUT http://169.254.169.254/latest/api/token \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-id           # -> i-0a1b2c...</code></pre>
+<p>
+Then open <code>http://&lt;public-ip&gt;/</code> in a browser. The page served by
+<code>scripts/user-data.sh</code> prints the instance id, instance type and availability zone it is
+running in — which makes it a usable load-balancer demonstration later, because you can see which of the
+two instances answered.
+</p>
+
+<h3>5.5 The instance lifecycle, and what each state costs</h3>
+
+<figure>
+<svg viewBox="0 0 760 300" role="img" aria-label="State machine of the EC2 instance lifecycle: pending to running to stopping to stopped and back to pending, with terminated as the terminal state, annotated with what each state bills.">
+  <text class="t-title" x="20" y="22">Figure 6 — Instance lifecycle and what each state bills</text>
+  <text class="t-sm" x="20" y="38">The billing annotations are the reason this diagram matters more than it looks.</text>
+
+  <!-- states -->
+  <rect class="node" x="34"  y="86" width="118" height="54"/>
+  <text class="t-box" x="93" y="108" text-anchor="middle">pending</text>
+  <text class="t-boxs" x="93" y="124" text-anchor="middle">booting, user data runs</text>
+
+  <rect x="196" y="86" width="118" height="54" rx="5" fill="#2a78d6"/>
+  <text class="t-box" x="255" y="108" text-anchor="middle" fill="#fff">running</text>
+  <text class="t-boxs" x="255" y="124" text-anchor="middle" fill="#dbe9fa">serving traffic</text>
+
+  <rect class="node" x="358" y="86" width="118" height="54"/>
+  <text class="t-box" x="417" y="108" text-anchor="middle">stopping</text>
+  <text class="t-boxs" x="417" y="124" text-anchor="middle">shutting down</text>
+
+  <rect class="node" x="520" y="86" width="118" height="54"/>
+  <text class="t-box" x="579" y="108" text-anchor="middle">stopped</text>
+  <text class="t-boxs" x="579" y="124" text-anchor="middle">disk kept, CPU gone</text>
+
+  <rect class="node" x="358" y="206" width="118" height="54" stroke="#d03b3b"/>
+  <text class="t-box" x="417" y="228" text-anchor="middle" fill="#d03b3b">terminated</text>
+  <text class="t-boxs" x="417" y="244" text-anchor="middle">gone, irreversibly</text>
+
+  <!-- arrows -->
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#52514e"/>
+    </marker>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d03b3b"/>
+    </marker>
+  </defs>
+  <g class="flow" marker-end="url(#ar)">
+    <path d="M152 113 H190"/>
+    <path d="M314 113 H352"/>
+    <path d="M476 113 H514"/>
+    <path d="M579 140 V170 H93 V140"/>
+  </g>
+  <g class="flow" stroke="#d03b3b" marker-end="url(#arr)">
+    <path d="M255 140 V233 H352"/>
+    <path d="M579 140 V233 H482"/>
+  </g>
+  <text class="t-boxs" x="336" y="163" text-anchor="middle">start — new public IP unless an Elastic IP is attached</text>
+  <text class="t-boxs" x="268" y="196" fill="#d03b3b">terminate</text>
+  <text class="t-boxs" x="560" y="196" fill="#d03b3b" text-anchor="end">terminate</text>
+  <text class="t-boxs" x="560" y="258">nothing is billed once the volume</text>
+  <text class="t-boxs" x="560" y="270">is deleted with the instance</text>
+
+  <!-- billing bar -->
+  <text class="t-lbl" x="34" y="268" font-weight="600">What each state bills</text>
+  <text class="t-boxs" x="93"  y="288" text-anchor="middle">EBS only</text>
+  <text class="t-boxs" x="255" y="288" text-anchor="middle" font-weight="600">instance + EBS</text>
+  <text class="t-boxs" x="417" y="288" text-anchor="middle">EBS only</text>
+  <text class="t-boxs" x="579" y="288" text-anchor="middle" fill="#d03b3b" font-weight="600">EBS still billed</text>
+</svg>
+<figcaption><b>Figure 6.</b> <em>Stopped</em> is not <em>free</em>. A stopped instance releases its vCPU and memory and stops the instance-hour charge, but its EBS root volume keeps billing, per GB-month, for as long as the volume exists. Only <em>terminate</em> ends the charge, and only if the volume was set to delete on termination. This one distinction accounts for most surprise bills in student accounts.</figcaption>
+</figure>
+
+<div class="warn">
+  <b>The four mistakes that cost marks in this exercise</b>
+  <ol style="margin:.4rem 0 0">
+    <li><strong>SSH open to 0.0.0.0/0.</strong> A new public SSH port is found by automated scanners within minutes. Scope port 22 to a <code>/32</code>, or use AWS Systems Manager Session Manager and open no inbound port at all.</li>
+    <li><strong>Mishandled private key.</strong> It is downloaded exactly once, it must be <code>chmod 400</code>, and it must never be committed to a repository. There is no recovery path.</li>
+    <li><strong>IMDSv1 left enabled.</strong> With IMDSv1, one server-side request forgery bug in your web app is enough to read the instance's IAM credentials. IMDSv2's token requirement closes it. Set <code>HttpTokens=required</code>.</li>
+    <li><strong>Stopping instead of terminating.</strong> See Figure 6. Stopped storage still bills.</li>
+  </ol>
+</div>
+
+<!-- ==================================================================== -->
+<h2 id="sec-6">6. Reference architecture and data flow</h2>
+
+<p>
+One instance is a demonstration, not an architecture. Figure 7 shows what the same application looks like
+once it has to survive a data centre failure and a traffic spike — and, unlike Figure 4, its arrows carry
+traffic, so every arrow is labelled with what actually moves along it.
+</p>
+
+<figure>
+<svg viewBox="0 0 760 484" role="img" aria-label="Data flow diagram: a user resolves DNS at Route 53, requests reach CloudFront and an Application Load Balancer, which distributes to EC2 instances in two availability zones, which read and write to a multi-AZ RDS database and to S3, with CloudWatch collecting logs and metrics.">
+  <text class="t-title" x="20" y="22">Figure 7 — Data flow for a two-zone web application</text>
+  <text class="t-sm" x="20" y="38">Arrows carry traffic and are labelled with what moves. Compare with Figure 4, whose boxes only nest.</text>
+
+  <defs>
+    <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#52514e"/>
+    </marker>
+  </defs>
+
+  <!-- route53 -->
+  <rect class="node" x="24" y="52" width="104" height="52"/>
+  <text class="t-box" x="76" y="75" text-anchor="middle">Route 53</text>
+  <text class="t-boxs" x="76" y="90" text-anchor="middle">DNS + health checks</text>
+
+  <!-- user -->
+  <rect class="node" x="24" y="150" width="104" height="52"/>
+  <text class="t-box" x="76" y="173" text-anchor="middle">User</text>
+  <text class="t-boxs" x="76" y="188" text-anchor="middle">browser / mobile</text>
+
+  <!-- cloudfront -->
+  <rect class="node" x="172" y="52" width="118" height="52"/>
+  <text class="t-box" x="231" y="75" text-anchor="middle">CloudFront</text>
+  <text class="t-boxs" x="231" y="90" text-anchor="middle">edge cache</text>
+
+  <!-- ALB -->
+  <rect x="172" y="138" width="118" height="54" rx="5" fill="#2a78d6"/>
+  <text class="t-box" x="231" y="160" text-anchor="middle" fill="#fff">Application</text>
+  <text class="t-box" x="231" y="177" text-anchor="middle" fill="#fff">Load Balancer</text>
+
+  <!-- AZ a -->
+  <rect class="zone" x="330" y="52" width="196" height="140"/>
+  <text class="t-boxs" x="342" y="70" font-weight="600">Availability Zone us-east-1a</text>
+  <rect class="node" x="346" y="78" width="164" height="44"/>
+  <text class="t-box" x="428" y="96" text-anchor="middle">EC2 web-01</text>
+  <text class="t-boxs" x="428" y="111" text-anchor="middle">Auto Scaling group member</text>
+  <rect class="node" x="346" y="144" width="164" height="42"/>
+  <text class="t-box" x="428" y="161" text-anchor="middle">RDS primary</text>
+  <text class="t-boxs" x="428" y="176" text-anchor="middle">private subnet</text>
+
+  <!-- AZ b -->
+  <rect class="zone" x="330" y="214" width="196" height="140"/>
+  <text class="t-boxs" x="342" y="232" font-weight="600">Availability Zone us-east-1b</text>
+  <rect class="node" x="346" y="240" width="164" height="44"/>
+  <text class="t-box" x="428" y="258" text-anchor="middle">EC2 web-02</text>
+  <text class="t-boxs" x="428" y="273" text-anchor="middle">Auto Scaling group member</text>
+  <rect class="node" x="346" y="306" width="164" height="42"/>
+  <text class="t-box" x="428" y="323" text-anchor="middle">RDS standby</text>
+  <text class="t-boxs" x="428" y="338" text-anchor="middle">synchronous replica</text>
+
+  <!-- S3 + CloudWatch -->
+  <rect class="node" x="576" y="78" width="152" height="44"/>
+  <text class="t-box" x="652" y="96" text-anchor="middle">Amazon S3</text>
+  <text class="t-boxs" x="652" y="111" text-anchor="middle">images, uploads, backups</text>
+
+  <rect class="node" x="576" y="240" width="152" height="44"/>
+  <text class="t-box" x="652" y="258" text-anchor="middle">CloudWatch</text>
+  <text class="t-boxs" x="652" y="273" text-anchor="middle">metrics, logs, alarms</text>
+
+  <!-- flows -->
+  <g class="flow" marker-end="url(#fa)">
+    <path d="M76 150 V110"/>
+    <path d="M128 78 H166"/>
+    <path d="M231 104 V132"/>
+    <path d="M290 155 H340"/>
+    <path d="M290 178 V262 H340"/>
+    <path d="M428 122 V140"/>
+    <path d="M428 284 V302"/>
+    <path d="M510 100 H570"/>
+    <path d="M510 262 H570"/>
+    <path d="M428 186 V210" stroke-dasharray="4 3"/>
+  </g>
+
+  <g class="t-boxs">
+    <text x="84" y="134">1 · DNS lookup</text>
+    <text x="147" y="70" text-anchor="middle">2 · CDN</text>
+    <text x="238" y="124">3 · miss</text>
+    <text x="294" y="148">4 · HTTP</text>
+    <text x="294" y="256">4 · HTTP</text>
+    <text x="514" y="94">5 · objects</text>
+    <text x="514" y="256">6 · metrics</text>
+    <text x="436" y="204">7 · replication</text>
+    <text x="434" y="136">SQL</text>
+    <text x="434" y="298">SQL (failover)</text>
+  </g>
+
+  <text class="t-sm" x="20" y="382" font-weight="600">What each hop buys:</text>
+  <text class="t-sm" x="20" y="400">1–2 · Route 53 health checks let DNS itself fail away from a broken region. 3 · CloudFront absorbs static traffic at the edge, so it never reaches EC2 —</text>
+  <text class="t-sm" x="20" y="416">the cheapest request is the one your instances never see. 4 · The load balancer removes an unhealthy instance from rotation without human action, which is</text>
+  <text class="t-sm" x="20" y="432">what makes an instance disposable. 5 · State moves to S3 so instances stay stateless, and a stateless instance can be replaced by Auto Scaling. 6 · CloudWatch</text>
+  <text class="t-sm" x="20" y="448">alarms are the trigger for scaling. 7 · Synchronous replication to a second AZ is what lets the database survive losing a data centre.</text>
+  <text class="t-sm" x="20" y="470">The pattern underneath all of it: push state outward (S3, RDS) so that compute becomes disposable, then let automation dispose of it.</text>
+</svg>
+<figcaption><b>Figure 7.</b> The same application as section 5, made survivable. Note that nothing here changes the <em>instance</em> — it changes what surrounds it. Availability is a property of the architecture, not of the virtual machine.</figcaption>
+</figure>
+
+<!-- ==================================================================== -->
+<h2 id="sec-7">7. Pricing models and cost engineering</h2>
+
+<p>
+EC2 sells the same virtual machine under four commercial models. The instance is identical in each; what
+differs is the commitment you make and therefore the price you pay. Figure 8 compares AWS's own published
+maximum discounts.
+</p>
+
+<figure>
+<svg viewBox="0 0 760 320" role="img" aria-label="Horizontal bar chart showing the share of the on-demand price paid under each EC2 purchase model: on-demand 100 percent, compute savings plan 34 percent, savings plans at maximum 28 percent, and spot 10 percent.">
+  <text class="t-title" x="20" y="22">Figure 8 — What you pay, as a share of the On-Demand price</text>
+  <text class="t-sm" x="20" y="38">AWS's published maximum discounts, not measured averages. Lower is cheaper. Source: AWS EC2 pricing and Savings Plans pages.</text>
+
+  <!-- gridlines -->
+  <g>
+    <line class="gridline" x1="230" y1="58" x2="230" y2="250"/>
+    <line class="gridline" x1="347" y1="58" x2="347" y2="250"/>
+    <line class="gridline" x1="464" y1="58" x2="464" y2="250"/>
+    <line class="gridline" x1="581" y1="58" x2="581" y2="250"/>
+    <line class="baseline" x1="230" y1="250" x2="700" y2="250"/>
+  </g>
+  <g class="t-axis" text-anchor="middle">
+    <text x="230" y="268">0%</text><text x="347" y="268">25%</text><text x="464" y="268">50%</text>
+    <text x="581" y="268">75%</text><text x="698" y="268">100%</text>
+  </g>
+
+  <!-- bars: value = share of on-demand price paid; 470px = 100% -->
+  <g fill="#2a78d6">
+    <rect x="230" y="66"  width="470" height="34" rx="4"/>
+    <rect x="230" y="112" width="160" height="34" rx="4"/>
+    <rect x="230" y="158" width="132" height="34" rx="4"/>
+    <rect x="230" y="204" width="47"  height="34" rx="4"/>
+  </g>
+  <!-- square the left edge against the axis -->
+  <g fill="#2a78d6">
+    <rect x="230" y="66" width="8" height="34"/><rect x="230" y="112" width="8" height="34"/>
+    <rect x="230" y="158" width="8" height="34"/><rect x="230" y="204" width="8" height="34"/>
+  </g>
+
+  <g class="t-lbl" text-anchor="end" font-weight="600">
+    <text x="220" y="82">On-Demand</text>
+    <text x="220" y="128">Compute Savings Plan</text>
+    <text x="220" y="174">Savings Plans (max)</text>
+    <text x="220" y="220">Spot</text>
+  </g>
+  <g class="t-boxs" text-anchor="end">
+    <text x="220" y="95">no commitment</text>
+    <text x="220" y="141">1 or 3 yr $/hr commitment</text>
+    <text x="220" y="187">1 or 3 yr, less flexible</text>
+    <text x="220" y="233">spare capacity, 2-min notice</text>
+  </g>
+
+  <g class="t-val" fill="#fff" text-anchor="end">
+    <text x="690" y="88">100%</text><text x="380" y="134">34%</text><text x="352" y="180">28%</text>
+  </g>
+  <text class="t-val" x="287" y="226" fill="#0b0b0b">10%</text>
+
+  <text class="t-sm" x="20" y="296">Read as: a Savings Plan can cut the bill to 28% of list (“up to 72%” off); Spot to 10% (“up to 90%” off).</text>
+  <text class="t-sm" x="20" y="310">These are ceilings, not typical results — real discounts vary by instance type, region and term, and Spot capacity can be reclaimed with two minutes' notice.</text>
+</svg>
+<figcaption><b>Figure 8.</b> The commercial model dominates every technical optimisation. Moving from <code>m7i.large</code> to <code>m8g.large</code> saves 11% (Figure 9); moving the same workload from On-Demand to a Savings Plan can save up to 72%. Do the cheap thing first.</figcaption>
+</figure>
+
+<h3>7.1 Processor choice: Graviton against Intel</h3>
+<p>
+AWS designs its own Arm-based server processors (Graviton), and prices them below the Intel equivalents at
+the same vCPU and memory. Figure 9 compares three matched pairs from the current generation. Because the
+specification either side of each pair is identical, the price gap is a clean like-for-like comparison —
+which is exactly what makes it usable evidence rather than a marketing claim.
+</p>
+
+<figure>
+<svg viewBox="0 0 760 402" role="img" aria-label="Grouped bar chart comparing on-demand hourly prices of AWS Graviton4 and Intel instances at matched sizes: m8g.large 0.0898 versus m7i.large 0.1008 dollars, c8g.large 0.0798 versus c7i.large 0.0892, and r8g.large 0.1178 versus r7i.large 0.1323.">
+  <text class="t-title" x="20" y="22">Figure 9 — Graviton4 (Arm) against Intel at identical vCPU and memory</text>
+  <text class="t-sm" x="20" y="38">On-Demand US$ per instance-hour, us-east-1, Linux. Retrieved from the AWS pricing feed, 7 September 2026.</text>
+
+  <g transform="translate(0,22)">
+  <g>
+    <line class="gridline" x1="70" y1="40"  x2="700" y2="40"/>
+    <line class="gridline" x1="70" y1="105" x2="700" y2="105"/>
+    <line class="gridline" x1="70" y1="170" x2="700" y2="170"/>
+    <line class="gridline" x1="70" y1="235" x2="700" y2="235"/>
+    <line class="baseline" x1="70" y1="300" x2="700" y2="300"/>
+  </g>
+  <g class="t-axis" text-anchor="end">
+    <text x="60" y="44">$0.14</text><text x="60" y="109">$0.105</text>
+    <text x="60" y="174">$0.07</text><text x="60" y="239">$0.035</text><text x="60" y="304">$0</text>
+  </g>
+
+  <!-- Graviton bars (slot 1) -->
+  <g fill="#2a78d6">
+    <rect x="100" y="133.2" width="72" height="166.8" rx="4"/>
+    <rect x="310" y="151.8" width="72" height="148.2" rx="4"/>
+    <rect x="520" y="81.2"  width="72" height="218.8" rx="4"/>
+    <rect x="100" y="292" width="72" height="8"/><rect x="310" y="292" width="72" height="8"/><rect x="520" y="292" width="72" height="8"/>
+  </g>
+  <!-- Intel bars (slot 2) -->
+  <g fill="#eb6834">
+    <rect x="178" y="112.8" width="72" height="187.2" rx="4"/>
+    <rect x="388" y="134.3" width="72" height="165.7" rx="4"/>
+    <rect x="598" y="54.3"  width="72" height="245.7" rx="4"/>
+    <rect x="178" y="292" width="72" height="8"/><rect x="388" y="292" width="72" height="8"/><rect x="598" y="292" width="72" height="8"/>
+  </g>
+
+  <g class="t-val" text-anchor="middle">
+    <text x="136" y="125">.0898</text><text x="214" y="105">.1008</text>
+    <text x="346" y="144">.0798</text><text x="424" y="126">.0892</text>
+    <text x="556" y="73">.1178</text><text x="634" y="46">.1323</text>
+  </g>
+
+  <!-- saving annotations -->
+  <g class="t-boxs" text-anchor="middle" fill="#006300" font-weight="600">
+    <text x="175" y="318">11% cheaper</text><text x="385" y="318">11% cheaper</text><text x="595" y="318">11% cheaper</text>
+  </g>
+  <g class="t-axis" text-anchor="middle">
+    <text x="175" y="336">General purpose · 2 vCPU / 8 GiB</text>
+    <text x="385" y="336">Compute optimised · 2 vCPU / 4 GiB</text>
+    <text x="595" y="336">Memory optimised · 2 vCPU / 16 GiB</text>
+  </g>
+
+  <g transform="translate(70,364)">
+    <rect x="0" y="-9" width="12" height="12" rx="2" fill="#2a78d6"/><text class="t-lbl" x="18" y="1">AWS Graviton4 (Arm) — m8g / c8g / r8g</text>
+    <rect x="300" y="-9" width="12" height="12" rx="2" fill="#eb6834"/><text class="t-lbl" x="318" y="1">Intel (x86) — m7i / c7i / r7i</text>
+  </g>
+  </g>
+</svg>
+<figcaption><b>Figure 9.</b> Three matched pairs, three near-identical results: 10.9%, 10.5% and 11.0% cheaper on Arm (derived: (x86 − Arm) ÷ x86). The consistency across families suggests a deliberate pricing position rather than incidental variation. The catch is real but small: your software must have an arm64 build. For anything interpreted or containerised on a modern base image, it does.</figcaption>
+</figure>
+
+<h3>7.2 The full price table</h3>
+<table>
+  <caption><b>Table 5.</b> On-Demand list prices, us-east-1, Linux, retrieved 7 September 2026 from the AWS pricing feed. Monthly figures are derived at 730 hours. Storage, data transfer and IP charges are additional.</caption>
+  <thead><tr><th>Instance type</th><th>Processor</th><th class="num">vCPU</th><th class="num">Memory</th><th class="num">$/hour</th><th class="num">$/month</th></tr></thead>
+  <tbody>
+    <tr><td><code>t4g.micro</code></td><td>Graviton2 (Arm)</td><td class="num">2</td><td class="num">1 GiB</td><td class="num">0.0084</td><td class="num">6.13</td></tr>
+    <tr><td><code>t3.micro</code></td><td>Intel (x86)</td><td class="num">2</td><td class="num">1 GiB</td><td class="num">0.0104</td><td class="num">7.59</td></tr>
+    <tr><td><code>t4g.small</code></td><td>Graviton2 (Arm)</td><td class="num">2</td><td class="num">2 GiB</td><td class="num">0.0168</td><td class="num">12.26</td></tr>
+    <tr><td><code>t3.small</code></td><td>Intel (x86)</td><td class="num">2</td><td class="num">2 GiB</td><td class="num">0.0208</td><td class="num">15.18</td></tr>
+    <tr><td><code>c8g.large</code></td><td>Graviton4 (Arm)</td><td class="num">2</td><td class="num">4 GiB</td><td class="num">0.0798</td><td class="num">58.22</td></tr>
+    <tr><td><code>c7i.large</code></td><td>Intel (x86)</td><td class="num">2</td><td class="num">4 GiB</td><td class="num">0.0892</td><td class="num">65.12</td></tr>
+    <tr><td><code>m8g.large</code></td><td>Graviton4 (Arm)</td><td class="num">2</td><td class="num">8 GiB</td><td class="num">0.0898</td><td class="num">65.52</td></tr>
+    <tr><td><code>m7i.large</code></td><td>Intel (x86)</td><td class="num">2</td><td class="num">8 GiB</td><td class="num">0.1008</td><td class="num">73.58</td></tr>
+    <tr><td><code>r8g.large</code></td><td>Graviton4 (Arm)</td><td class="num">2</td><td class="num">16 GiB</td><td class="num">0.1178</td><td class="num">86.02</td></tr>
+    <tr><td><code>r7i.large</code></td><td>Intel (x86)</td><td class="num">2</td><td class="num">16 GiB</td><td class="num">0.1323</td><td class="num">96.58</td></tr>
+    <tr><td><code>c8g.xlarge</code></td><td>Graviton4 (Arm)</td><td class="num">4</td><td class="num">8 GiB</td><td class="num">0.1595</td><td class="num">116.44</td></tr>
+    <tr><td><code>i4i.large</code></td><td>Intel + NVMe</td><td class="num">2</td><td class="num">16 GiB</td><td class="num">0.1720</td><td class="num">125.56</td></tr>
+    <tr><td><code>m8g.xlarge</code></td><td>Graviton4 (Arm)</td><td class="num">4</td><td class="num">16 GiB</td><td class="num">0.1795</td><td class="num">131.04</td></tr>
+    <tr><td><code>x8g.large</code></td><td>Graviton4 (Arm)</td><td class="num">2</td><td class="num">32 GiB</td><td class="num">0.1954</td><td class="num">142.64</td></tr>
+    <tr><td><code>c8g.2xlarge</code></td><td>Graviton4 (Arm)</td><td class="num">8</td><td class="num">16 GiB</td><td class="num">0.3190</td><td class="num">232.87</td></tr>
+    <tr><td><code>m8g.2xlarge</code></td><td>Graviton4 (Arm)</td><td class="num">8</td><td class="num">32 GiB</td><td class="num">0.3590</td><td class="num">262.07</td></tr>
+    <tr><td><code>g6.xlarge</code></td><td>AMD + NVIDIA L4</td><td class="num">4</td><td class="num">16 GiB</td><td class="num">0.8048</td><td class="num">587.50</td></tr>
+    <tr><td><code>p5.48xlarge</code></td><td>AMD + 8× NVIDIA H100</td><td class="num">192</td><td class="num">2048 GiB</td><td class="num">55.0400</td><td class="num">40,179.20</td></tr>
+  </tbody>
+</table>
+<p>
+Read down the <code>m8g</code> rows and the linearity of the size ladder is visible: 0.0898 → 0.1795 →
+0.3590 as the size doubles twice, within a hundredth of a cent of exactly double each time. Two
+<code>m8g.large</code> instances therefore cost the same as one <code>m8g.xlarge</code> and give you two
+availability zones. That is the arithmetic behind "scale out, not up".
+</p>
+
+<h3>7.3 Costs that are not the instance</h3>
+<p>
+The instance-hour is the number students optimise and the number that surprises nobody. The charges that
+generate the surprises are elsewhere:
+</p>
+<ul>
+  <li><strong>EBS storage</strong> — billed per GB-month whether the instance runs, is stopped, or was terminated leaving an orphan volume behind. The current gp3 rate is on AWS's EBS pricing page; it is not quoted here, because that page serves its prices from a template rather than from the machine-readable feed used for Table 5, and every number in this report is quoted from a source that was actually read.</li>
+  <li><strong>Data transfer out</strong> — inbound is free; outbound to the internet is not, and cross-AZ traffic is charged in both directions. An architecture that chats across AZs pays for every message.</li>
+  <li><strong>Idle public IPv4 addresses</strong> — AWS charges hourly for public IPv4 addresses, including allocated Elastic IPs that are not attached to anything.</li>
+  <li><strong>Snapshots and AMIs</strong> — retained by default, forgotten by default, billed by default.</li>
+</ul>
+<div class="key">
+  <b>The cost hierarchy, cheapest action first</b>
+  <ol style="margin:.4rem 0 0">
+    <li><strong>Turn it off.</strong> A development instance running only office hours costs about a quarter of one running all week. Nothing else comes close to this.</li>
+    <li><strong>Right-size it.</strong> Use CloudWatch to find instances at 5% CPU and move them down the ladder.</li>
+    <li><strong>Commit.</strong> Once the baseline is genuinely steady, a Savings Plan takes up to 72% off it.</li>
+    <li><strong>Use Spot for interruptible work.</strong> Batch jobs, CI runners, and training checkpoints tolerate a two-minute eviction notice; they should not be paying list price.</li>
+    <li><strong>Then</strong> optimise the processor choice for the last 11%.</li>
+  </ol>
+</div>
+
+<!-- ==================================================================== -->
+<h2 id="sec-8">8. Use cases, matched to instance families</h2>
+
+<p>
+Each case below names the workload, the instance family that fits it, and — importantly — the purchase
+model, because as Figure 8 showed, that choice moves more money than the hardware choice.
+</p>
+
+<h3>8.1 Public web and application hosting</h3>
+<p>
+The canonical case, and the one built in section 5. Auto Scaling group of general-purpose instances behind
+an Application Load Balancer across two AZs, state pushed to RDS and S3 so instances stay disposable
+(Figure 7). <strong>Family:</strong> <code>m8g</code> or <code>c8g</code> for the app tier,
+<code>t4g</code> for small or intermittent sites. <strong>Purchase:</strong> Savings Plan for the
+always-on baseline, On-Demand for the scaled-out peak. <strong>Why cloud wins:</strong> the peak-to-trough
+ratio. A retailer sizing owned hardware for Black Friday pays for that capacity for 365 days a year.
+</p>
+
+<h3>8.2 Batch processing and scientific computing</h3>
+<p>
+Video transcoding, genome alignment, Monte Carlo simulation, nightly ETL. The work is interruptible and
+embarrassingly parallel, which makes it the ideal Spot workload. <strong>Family:</strong> <code>c8g</code>
+for CPU-bound work. <strong>Purchase:</strong> Spot, at up to 90% off, with checkpointing so a two-minute
+eviction costs minutes and not the whole run. <strong>Why cloud wins:</strong> five hundred instances for
+one hour costs the same as one instance for five hundred hours, and finishes the job today.
+</p>
+
+<h3>8.3 Machine learning training and inference</h3>
+<p>
+Training on <code>p5</code> instances (8× NVIDIA H100 at $55.04/hour), serving on smaller
+<code>g6</code> instances. This is the workload Synergy credits with the market's 43% growth — GenAI
+services grew 165% year on year in Q2 2026. <strong>Purchase:</strong> Spot or capacity reservations for
+training; on-demand or committed for serving. <strong>Why cloud wins:</strong> the alternative is a
+$40,000-a-month machine you must keep busy to justify. Renting turns a capital argument into a utilisation
+one.
+</p>
+
+<h3>8.4 Development, test and CI environments</h3>
+<p>
+Ephemeral by nature: a preview environment per pull request, torn down on merge. <strong>Family:</strong>
+<code>t4g</code> burstable — most of these boxes are idle most of the time, which is exactly what the
+burstable credit model is for. <strong>Purchase:</strong> On-Demand plus a scheduled shutdown; Spot for
+CI runners. <strong>Why cloud wins:</strong> the environment can be identical to production and cost
+nothing overnight — with the Terraform in this project, <em>identical</em> is literal, because it is the
+same file.
+</p>
+
+<h3>8.5 Migration, disaster recovery and business continuity</h3>
+<p>
+Lift-and-shift of existing servers, or a warm standby in a second region. <strong>Family:</strong> match
+the source machine at first, then right-size once real utilisation data exists — migrations that
+right-size on day one usually right-size wrongly. <strong>Purchase:</strong> On-Demand during migration,
+Savings Plan once steady. <strong>Why cloud wins:</strong> a DR site that costs a few dollars a month
+while idle, versus a second data centre that costs the same as the first whether or not it is ever used.
+</p>
+
+<!-- ==================================================================== -->
+<h2 id="sec-9">9. Security and the shared responsibility model</h2>
+
+<p>
+AWS states the division plainly: AWS is responsible for the security <em>of</em> the cloud — hardware,
+the hypervisor, physical facilities, the managed service software. The customer is responsible for
+security <em>in</em> the cloud. On EC2, as Figure 1 shows, that boundary sits high: guest OS patching,
+firewall rules, identity, encryption configuration and application code are all yours.
+</p>
+
+<h4>Identity</h4>
+<p>
+Never use the account root user for daily work; enable MFA on it and put it away. Give applications an
+<strong>IAM role</strong> attached to the instance, never a static access key baked into an AMI or a
+config file. The role delivers temporary rotating credentials through the metadata service, which is what
+makes IMDSv2 a security control and not a formality.
+</p>
+
+<h4>Network</h4>
+<p>
+Two independent mechanisms, and you want both. <strong>Security groups</strong> are stateful, allow-only
+firewalls attached to the network interface — there is no deny rule, absence <em>is</em> denial.
+<strong>Route tables</strong> decide whether a subnet can reach the internet at all. In Figure 4 the
+database is unreachable because of routing, not because of a firewall rule; if someone later misconfigures
+the security group, the routing still holds. Defence in depth means each layer failing independently.
+</p>
+
+<h4>Data</h4>
+<p>
+Encrypt EBS volumes at rest (one checkbox, no measurable performance cost, and it is set in
+<code>terraform/main.tf</code>). Terminate TLS at the load balancer with an ACM certificate. Back up with
+EBS snapshots or automated RDS backups, and — because a backup that has never been restored is a
+hypothesis, not a backup — restore one on purpose at least once.
+</p>
+
+<h4>Detection</h4>
+<p>
+<strong>CloudTrail</strong> records every API call made in the account, which is what turns "someone
+launched a $55/hour instance" from a mystery into a name and a timestamp. <strong>CloudWatch</strong>
+alarms on metrics; a billing alarm is the single highest-value alarm in a student account.
+<strong>AWS Config</strong> can flag a security group that opens port 22 to the world the moment it
+appears.
+</p>
+
+<div class="warn">
+  <b>Why IMDSv2 gets its own paragraph</b>
+  The instance metadata service lives at the link-local address <code>169.254.169.254</code> and hands out
+  the instance's IAM credentials to anything that asks from on the instance. Under IMDSv1 "asking" was a
+  plain HTTP GET — so any server-side request forgery bug in a web application running on the instance
+  could be pointed at that address and would return live cloud credentials. IMDSv2 requires a PUT to
+  obtain a session token first, and sets a hop limit so the token cannot be fetched through a proxy or a
+  container boundary. It is one line in <code>terraform/main.tf</code>
+  (<code>http_tokens = "required"</code>) and it closes an entire class of breach.
+</div>
+
+<!-- ==================================================================== -->
+<h2 id="sec-10">10. Comparison: AWS, Azure and Google Cloud</h2>
+
+<p>
+The three providers converged on the same abstractions with different names. Anyone who understands
+Figure 4 and Figure 5 already understands the equivalent constructs on the other two.
+</p>
+
+<table>
+  <caption><b>Table 6.</b> Equivalent concepts across the three major providers.</caption>
+  <thead><tr><th>Concept</th><th>AWS</th><th>Microsoft Azure</th><th>Google Cloud</th></tr></thead>
+  <tbody>
+    <tr><td>Virtual machine service</td><td>EC2</td><td>Virtual Machines</td><td>Compute Engine</td></tr>
+    <tr><td>Machine image</td><td>AMI</td><td>Managed Image / Gallery</td><td>Image</td></tr>
+    <tr><td>Private network</td><td>VPC</td><td>Virtual Network (VNet)</td><td>VPC network</td></tr>
+    <tr><td>Instance firewall</td><td>Security group</td><td>Network security group</td><td>VPC firewall rule</td></tr>
+    <tr><td>Failure domain in a region</td><td>Availability Zone</td><td>Availability Zone</td><td>Zone</td></tr>
+    <tr><td>Object storage</td><td>S3</td><td>Blob Storage</td><td>Cloud Storage</td></tr>
+    <tr><td>Managed relational DB</td><td>RDS</td><td>Azure SQL / Flexible Server</td><td>Cloud SQL</td></tr>
+    <tr><td>Serverless functions</td><td>Lambda</td><td>Azure Functions</td><td>Cloud Run functions</td></tr>
+    <tr><td>Committed-use discount</td><td>Savings Plans / Reserved Instances</td><td>Reserved VM Instances / Savings Plan</td><td>Committed use discounts</td></tr>
+    <tr><td>Interruptible capacity</td><td>Spot Instances</td><td>Spot Virtual Machines</td><td>Spot VMs</td></tr>
+    <tr><td>In-house Arm processor</td><td>Graviton</td><td>Cobalt</td><td>Axion</td></tr>
+    <tr><td>Q2 2026 market share</td><td>28%</td><td>20%</td><td>15%</td></tr>
+  </tbody>
+</table>
+
+<p>
+Where they genuinely differ is in emphasis rather than capability. AWS has the broadest service catalogue
+and the deepest third-party ecosystem, a consequence of a decade's head start. Azure's advantage is
+commercial and organisational: existing Microsoft enterprise agreements, Active Directory identity, and
+licensing terms that favour customers already running Windows Server and SQL Server. Google Cloud
+competes on data and machine learning — BigQuery and its TPU fleet — and is the one taking share fastest,
+up three points in the six quarters plotted in Figure 2. For a workload that is a plain Linux web
+application, as in section 5, the three are close enough that the deciding factors are usually existing
+commitments, existing staff skills, and the discount the sales team offers.
+</p>
+
+<!-- ==================================================================== -->
+<h2 id="sec-11">11. Limitations and risks</h2>
+
+<ul>
+  <li><strong>Vendor lock-in is real, and it is not mainly about VMs.</strong> An EC2 instance running Linux is portable — it is a Linux box. The lock-in accumulates in everything around it: IAM policies, S3 semantics, Lambda, DynamoDB, the managed services that make AWS worth using. The more of AWS you use well, the more expensive leaving becomes. That is a deliberate feature of the business model, not an accident.</li>
+  <li><strong>Egress pricing shapes architecture.</strong> Data flows in free and out billed. This asymmetry quietly discourages multi-cloud designs and gives data gravity a direction: it is always cheaper to move compute to your data than data to your compute.</li>
+  <li><strong>Cost is elastic in both directions.</strong> The same self-service that provisions a server in ninety seconds provisions a $40,000-a-month GPU cluster in ninety seconds. Without budget alarms, tagging and Config rules, an organisation finds out at the end of the month.</li>
+  <li><strong>Concentration risk is systemic.</strong> Three providers hold 67% of public cloud. A regional AWS outage takes down a visible fraction of the internet with it, and no individual customer's architecture choices change that.</li>
+  <li><strong>Sovereignty and compliance.</strong> Region choice determines legal jurisdiction over the data. For regulated workloads this is a legal question that precedes the architecture, not a technical one that follows it.</li>
+  <li><strong>Capacity is finite.</strong> "Infinite capacity" is a marketing simplification. GPU instances in particular are subject to real capacity constraints and account quotas; <code>InsufficientInstanceCapacity</code> is a genuine error you will meet, and multi-AZ launch templates are part of the answer.</li>
+</ul>
+
+<!-- ==================================================================== -->
+<h2 id="sec-12">12. Conclusion</h2>
+
+<p>
+Provisioning a virtual machine on AWS is a small technical problem. Section 5 does it three ways, and the
+slowest of them takes about three minutes. That ease is precisely why the difficulty moves elsewhere: the
+open SSH port, the enabled IMDSv1, the instance stopped instead of terminated, the On-Demand price paid
+for a workload that has been steady for two years. Each of those is a decision made in seconds and paid
+for over months.
+</p>
+<p>
+The evidence assembled here points the same way three times. In Figure 8, the commercial model moves cost
+by up to 72% while the processor choice in Figure 9 moves it by 11% — so the cheap decisions should be
+made first. In Figure 7, availability turns out to be a property of what surrounds the instance rather
+than of the instance itself. And in Table 4, the difference between the three provisioning paths is not
+speed but reviewability and reversibility. The version of this exercise that is worth learning is not
+"launch an EC2 instance". It is: write the instance down as code, scope its access to what it needs, know
+what state it is in and what that state bills, and destroy it when the demonstration is over.
+</p>
+<p>
+Meanwhile the market this sits in is growing 43% a year and has doubled in eleven quarters. Whatever
+proportion of that growth generative AI ultimately justifies, the operational skills in this report —
+provisioning, network isolation, identity, and cost discipline — are the ones underneath all of it.
+</p>
+
+<!-- ==================================================================== -->
+<h2 id="refs">References</h2>
+<ol class="refs">
+  <li>Synergy Research Group. <em>Q2 Cloud Market Passes $143 Billion; Highest Growth Rate in Eight Years.</em> Press release, 30 July 2026. <span class="acc">srgresearch.com/articles/q2-cloud-market-passes-143-billion-highest-growth-rate-in-eight-years — accessed 7 Sept 2026.</span></li>
+  <li>Synergy Research Group. <em>Cloud Market Annual Revenue Run Rate Topped Half a Trillion Dollars in Q1 as Growth Surge Continues.</em> Press release, 29 April 2026. <span class="acc">accessed 7 Sept 2026.</span></li>
+  <li>Synergy Research Group. <em>GenAI Helps Drive Quarterly Cloud Revenues to $119 Billion as Growth Rate Jumped Yet Again in Q4.</em> Press release, 5 February 2026. <span class="acc">accessed 7 Sept 2026.</span></li>
+  <li>Synergy Research Group. <em>Cloud Market Growth Rate Rises Again in Q3; Biggest Ever Sequential Increase.</em> Press release, 31 October 2025. <span class="acc">accessed 7 Sept 2026.</span></li>
+  <li>Synergy Research Group. <em>Q2 Cloud Market Nears $100 Billion Milestone — and it's Still Growing by 25% Year over Year.</em> Press release, 31 July 2025. <span class="acc">accessed 7 Sept 2026.</span></li>
+  <li>Synergy Research Group. <em>AI Helps Cloud Market Growth Rate Jump Back to Almost 25% in Q1.</em> Press release, 1 May 2025. <span class="acc">accessed 7 Sept 2026.</span></li>
+  <li>Amazon Web Services. <em>Amazon EC2 On-Demand pricing feed, US East (N. Virginia), Linux.</em> <span class="acc">b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US East (N. Virginia)/Linux/index.json — the feed read by the public EC2 pricing page; retrieved 7 Sept 2026. Every price in Table 5 and Figure 9 comes from this response.</span></li>
+  <li>Amazon Web Services. <em>Amazon EC2 pricing.</em> <span class="acc">aws.amazon.com/ec2/pricing/ — source of the “up to 72%” Savings Plans and “up to 90%” Spot figures in Figure 8; accessed 7 Sept 2026.</span></li>
+  <li>Amazon Web Services. <em>Compute Savings Plans pricing.</em> <span class="acc">aws.amazon.com/savingsplans/compute-pricing/ — source of the “up to 66%” Compute Savings Plan figure; accessed 7 Sept 2026.</span></li>
+  <li>Mell, P. and Grance, T. <em>The NIST Definition of Cloud Computing.</em> NIST Special Publication 800-145, September 2011. <span class="acc">Source of the five essential characteristics in Table 1.</span></li>
+  <li>Amazon Web Services. <em>Amazon EC2 User Guide</em> — instance lifecycle, instance metadata and user data (IMDSv2), security groups, Amazon EBS volume types. <span class="acc">docs.aws.amazon.com/ec2/ — the behaviours documented in sections 4, 5 and 9.</span></li>
+  <li>HashiCorp. <em>Terraform AWS provider — <code>aws_instance</code> resource.</em> <span class="acc">registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance — the schema used in terraform/main.tf.</span></li>
+</ol>
+
+<div class="note">
+  <b>A note on sourcing</b>
+  Market-share figures were taken from Synergy Research Group's own press releases rather than from
+  secondary articles reporting them, and prices were read from the AWS pricing feed rather than from a
+  pricing blog, because both kinds of number are routinely misquoted after one or two rehandlings. The
+  underlying dataset, with the exact URL and retrieval date for each value, is in
+  <code>data/figures.json</code> in this project.
+</div>
+
+<!-- ==================================================================== -->
+<h2 id="appendix">Appendix: figure data</h2>
+
+<table>
+  <caption><b>Table A1.</b> Data behind Figures 2 and 3. Source: Synergy Research Group quarterly releases.</caption>
+  <thead><tr><th>Quarter</th><th class="num">Market ($bn)</th><th class="num">AWS</th><th class="num">Azure</th><th class="num">Google Cloud</th><th>Release date</th></tr></thead>
+  <tbody>
+    <tr><td>Q1 2025</td><td class="num">94.0</td><td class="num">29%</td><td class="num">22%</td><td class="num">12%</td><td>1 May 2025</td></tr>
+    <tr><td>Q2 2025</td><td class="num">99.0</td><td class="num">30%</td><td class="num">20%</td><td class="num">13%</td><td>31 Jul 2025</td></tr>
+    <tr><td>Q3 2025</td><td class="num">106.5 <span style="color:#898781">(derived)</span></td><td class="num">29%</td><td class="num">20%</td><td class="num">13%</td><td>31 Oct 2025</td></tr>
+    <tr><td>Q4 2025</td><td class="num">119.1</td><td class="num">28%</td><td class="num">21%</td><td class="num">14%</td><td>5 Feb 2026</td></tr>
+    <tr><td>Q1 2026</td><td class="num">129.0</td><td class="num">28%</td><td class="num">21%</td><td class="num">14%</td><td>29 Apr 2026</td></tr>
+    <tr><td>Q2 2026</td><td class="num">143.4</td><td class="num">28%</td><td class="num">20%</td><td class="num">15%</td><td>30 Jul 2026</td></tr>
+  </tbody>
+</table>
+<p style="font-size:.82rem; color:var(--text-secondary); font-family:var(--sans)">
+Q3 2025 market size is the one derived value in this report: Synergy stated Q4 2025 at $119.1bn and
+described Q4 as an increase of “almost $12 billion” over Q3, giving ≈$106.5bn. It is marked derived
+wherever it appears. All shares, and all other market sizes, are stated directly in the cited releases.
+</p>
+
+<table>
+  <caption><b>Table A2.</b> Data behind Figure 9 — matched Graviton4 / Intel pairs. Source: AWS pricing feed, us-east-1, Linux, 7 Sept 2026.</caption>
+  <thead><tr><th>Pair</th><th>Arm</th><th class="num">$/hr</th><th>x86</th><th class="num">$/hr</th><th class="num">Saving</th></tr></thead>
+  <tbody>
+    <tr><td>General purpose, 2 vCPU / 8 GiB</td><td><code>m8g.large</code></td><td class="num">0.0898</td><td><code>m7i.large</code></td><td class="num">0.1008</td><td class="num">10.9%</td></tr>
+    <tr><td>Compute optimised, 2 vCPU / 4 GiB</td><td><code>c8g.large</code></td><td class="num">0.0798</td><td><code>c7i.large</code></td><td class="num">0.0892</td><td class="num">10.5%</td></tr>
+    <tr><td>Memory optimised, 2 vCPU / 16 GiB</td><td><code>r8g.large</code></td><td class="num">0.1178</td><td><code>r7i.large</code></td><td class="num">0.1323</td><td class="num">11.0%</td></tr>
+    <tr><td>Burstable, 2 vCPU / 1 GiB</td><td><code>t4g.micro</code></td><td class="num">0.0084</td><td><code>t3.micro</code></td><td class="num">0.0104</td><td class="num">19.2%</td></tr>
+  </tbody>
+</table>
+<p style="font-size:.82rem; color:var(--text-secondary); font-family:var(--sans)">
+Saving is derived as (x86 − Arm) ÷ x86 × 100. The burstable pair is listed here for completeness but is
+excluded from Figure 9, because burstable instances price a CPU-credit model rather than sustained
+performance and are not a like-for-like comparison with the other three.
+</p>
+
+<table>
+  <caption><b>Table A3.</b> Data behind Figure 8 — purchase models. Source: AWS EC2 pricing and Savings Plans pages, accessed 7 Sept 2026.</caption>
+  <thead><tr><th>Model</th><th class="num">Max discount</th><th class="num">Share of list paid</th><th>Commitment</th></tr></thead>
+  <tbody>
+    <tr><td>On-Demand</td><td class="num">—</td><td class="num">100%</td><td>None</td></tr>
+    <tr><td>Compute Savings Plan</td><td class="num">66%</td><td class="num">34%</td><td>1 or 3 year $/hour spend, flexible across family and region</td></tr>
+    <tr><td>Savings Plans (maximum)</td><td class="num">72%</td><td class="num">28%</td><td>1 or 3 year $/hour spend, less flexible</td></tr>
+    <tr><td>Spot</td><td class="num">90%</td><td class="num">10%</td><td>None; capacity reclaimed with 2 minutes' notice</td></tr>
+  </tbody>
+</table>
+<p style="font-size:.82rem; color:var(--text-secondary); font-family:var(--sans)">
+These are AWS's published maximum discounts, quoted as ceilings. They are not measured averages, and
+actual discounts vary by instance type, region and term length.
+</p>
+
+<h3>Project contents</h3>
+<table>
+  <caption><b>Table A4.</b> Files accompanying this report.</caption>
+  <thead><tr><th>Path</th><th>What it is</th></tr></thead>
+  <tbody>
+    <tr><td><code>report.html</code></td><td>This document. Print to PDF from any browser — page breaks and A4 sizing are set.</td></tr>
+    <tr><td><code>slides.html</code></td><td>The presentation. Arrow keys or space to advance; press <kbd>P</kbd> for a printable handout.</td></tr>
+    <tr><td><code>data/figures.json</code></td><td>Every number in both documents, with its source URL and retrieval date.</td></tr>
+    <tr><td><code>terraform/main.tf</code></td><td>The VM as infrastructure code (section 5.3), with variables and outputs alongside.</td></tr>
+    <tr><td><code>scripts/create-ec2-cli.sh</code></td><td>The VM via the AWS CLI (section 5.2), with a tear-down path.</td></tr>
+    <tr><td><code>scripts/user-data.sh</code></td><td>The bootstrap script both paths use.</td></tr>
+    <tr><td><code>README.md</code></td><td>How to run, print and submit all of it.</td></tr>
+  </tbody>
+</table>
+
+</body>
+</html>
